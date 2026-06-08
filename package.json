@@ -1,0 +1,35 @@
+{
+  "name": "encarapi",
+  "version": "0.1.0",
+  "description": "Official Node.js client for the EnCarAPI — Korean car data API (Encar.com listings, specs, prices).",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": ["src"],
+  "scripts": {
+    "test": "node test/smoke.js"
+  },
+  "keywords": [
+    "encar",
+    "encar api",
+    "encar.com",
+    "korean car api",
+    "korea car api",
+    "korean used car data",
+    "korean car data",
+    "car export korea",
+    "vehicle data api"
+  ],
+  "homepage": "https://encarapi.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ThatMojo/encarapi-node.git"
+  },
+  "bugs": {
+    "url": "https://encarapi.com"
+  },
+  "author": "EnCarAPI (https://encarapi.com)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
