@@ -31,6 +31,9 @@ class ChinaClient {
   /** Up to 500 full records in one call (Business/Scale). */
   bulkVehicles(ids, params) { return this.http.request("POST", "/api/vehicle/bulk", { params, body: { ids } }); }
 
+  /** Alias of bulkVehicles (name used by the standalone chinacarapi 0.x client). */
+  bulk(ids, params) { return this.bulkVehicles(ids, params); }
+
   /** Change feed: { since } once, then { cursor: nextCursor } (Business/Scale). */
   changes(params) { return this.http.request("GET", "/api/catalog/changes", { params }); }
 

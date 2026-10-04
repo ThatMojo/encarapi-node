@@ -176,6 +176,8 @@ export class ChinaClient {
   vehicle(id: string, params?: { lang?: "en" | "zh" }): Promise<Json>;
   inspection(id: string, params?: { lang?: "en" | "zh" }): Promise<Json>;
   bulkVehicles(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
+  /** Alias of bulkVehicles. */
+  bulk(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
   changes(params: { since?: string; cursor?: number; source?: string; limit?: number }): Promise<Json>;
   exportCsv(params?: Json): Promise<string>;
   enums(params?: Json): Promise<Json>;
