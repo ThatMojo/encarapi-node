@@ -18,7 +18,7 @@ scraping, proxies or geo-blocks.
 ## Install
 
 ```bash
-npm install github:ThatMojo/encarapi-node
+npm install encarapi
 ```
 
 Requires Node.js 18+ (uses the global `fetch`). No dependencies. TypeScript types included.
