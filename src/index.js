@@ -1,84 +1,85 @@
 "use strict";
 
-const DEFAULT_BASE_URL = "https://api.encarapi.com";
-const SIGNUP_URL = "https://encarapi.com";
-
-class EnCarAPIError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = "EnCarAPIError";
-  }
-}
+const { EnCarAPIError } = require("./http");
+const { KoreaClient } = require("./korea");
+const { ChinaClient } = require("./china");
 
 /**
- * Official Node.js client for the EnCarAPI — Korean car data API (Encar.com).
+ * Official Node.js client for EnCarAPI: Korean used-car data (Encar, KB Chachacha,
+ * K Car) and Chinese used-car data (Dongchedi, Che168) through one package.
  *
- * An EnCarAPI key is REQUIRED. Get one (5-day trial) at https://encarapi.com.
+ * An API key is REQUIRED. Get one at https://encarapi.com (Korea) or
+ * https://chinacarapi.com (China). EnCarAPI keys with the China add-on work for both.
  *
  *   const { EnCarAPI } = require("encarapi");
  *   const client = new EnCarAPI(process.env.ENCARAPI_KEY);
- *   const cars = await client.catalog({ count: true });
- *   const detail = await client.vehicle("12345678");
+ *   const kr = await client.korea.catalog({ manufacturer: "Hyundai", lang: "en", count: true });
+ *   const cn = await client.china.catalog({ make: "BYD", limit: 25 });
  */
 class EnCarAPI {
   constructor(apiKey, options = {}) {
     apiKey = apiKey || process.env.ENCARAPI_KEY;
+    const chinaKey = options.chinaKey || process.env.CHINACARAPI_KEY || apiKey;
+    if (!apiKey && !chinaKey) {
+      throw new EnCarAPIError(
+        "An API key is required. Pass new EnCarAPI('YOUR_KEY') or set ENCARAPI_KEY " +
+          "(Korea) / CHINACARAPI_KEY (China). Get a key at https://encarapi.com"
+      );
+    }
+    this._apiKey = apiKey;
+    this._chinaKey = chinaKey;
+    this._options = options;
+  }
+
+  /** Korean data: Encar (default), KB Chachacha (source "kbc"), K Car (source "kcar"). */
+  get korea() {
+    if (!this._korea) {
+      if (!this._apiKey) {
+        throw new EnCarAPIError("An EnCarAPI key is required for Korean data. Get one at https://encarapi.com");
+      }
+      this._korea = new KoreaClient(this._apiKey, { baseUrl: this._options.baseUrl, fetch: this._options.fetch });
+    }
+    return this._korea;
+  }
+
+  /** Chinese data: Dongchedi and Che168 (ChinaCarAPI key or EnCarAPI key with the China add-on). */
+  get china() {
+    if (!this._china) {
+      this._china = new ChinaClient(this._chinaKey, { baseUrl: this._options.chinaBaseUrl, fetch: this._options.fetch });
+    }
+    return this._china;
+  }
+
+  // Backwards compatible shortcuts from 0.x (Korean catalog).
+  catalog(params) { return this.korea.catalog(params); }
+  nav(params) { return this.korea.nav(params); }
+  vehicle(id, params) { return this.korea.vehicle(id, params); }
+}
+
+/**
+ * China-only entry point (also published as the `chinacarapi` package).
+ *
+ *   const { ChinaCarAPI } = require("encarapi");
+ *   const client = new ChinaCarAPI(process.env.CHINACARAPI_KEY);
+ */
+class ChinaCarAPI extends ChinaClient {
+  constructor(apiKey, options = {}) {
+    apiKey = apiKey || process.env.CHINACARAPI_KEY;
     if (!apiKey) {
       throw new EnCarAPIError(
-        "An EnCarAPI key is required. Pass new EnCarAPI('YOUR_KEY') or set the " +
-          `ENCARAPI_KEY environment variable. Get a key at ${SIGNUP_URL}`
+        "A ChinaCarAPI key is required. Pass new ChinaCarAPI('YOUR_KEY') or set CHINACARAPI_KEY. " +
+          "Get a key at https://chinacarapi.com"
       );
     }
-    this.apiKey = apiKey;
-    this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "");
-    if (typeof fetch !== "function") {
-      throw new EnCarAPIError(
-        "global fetch is not available — Node.js 18+ is required (or provide a fetch polyfill)."
-      );
-    }
-  }
-
-  async _get(path, params) {
-    const url = new URL(this.baseUrl + path);
-    if (params) {
-      for (const [k, v] of Object.entries(params)) {
-        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
-      }
-    }
-    const res = await fetch(url, {
-      headers: { "x-api-key": this.apiKey, Accept: "application/json" },
-    });
-    const body = await res.text();
-    if (res.status === 401 || res.status === 403) {
-      throw new EnCarAPIError(
-        `EnCarAPI rejected the request (${res.status}). Check your key or subscription ` +
-          `at ${SIGNUP_URL}. Body: ${body.slice(0, 300)}`
-      );
-    }
-    if (!res.ok) {
-      throw new EnCarAPIError(`EnCarAPI error ${res.status}: ${body.slice(0, 300)}`);
-    }
-    try {
-      return JSON.parse(body);
-    } catch {
-      return body;
-    }
-  }
-
-  /** Search & filter the Korean car catalog (Encar.com listings). */
-  catalog(params) {
-    return this._get("/api/catalog", params);
-  }
-
-  /** Filter facets / navigation metadata (brands, models, counts). */
-  nav(params) {
-    return this._get("/api/nav", params);
-  }
-
-  /** Full detail for one vehicle: specs, options, inspection, price. */
-  vehicle(vehicleId) {
-    return this._get(`/api/vehicle/${encodeURIComponent(vehicleId)}`);
+    super(apiKey, options);
   }
 }
 
-module.exports = { EnCarAPI, EnCarAPIError };
+module.exports = {
+  EnCarAPI,
+  ChinaCarAPI,
+  KoreaClient,
+  ChinaClient,
+  EnCarAPIError,
+  ChinaCarAPIError: EnCarAPIError,
+};

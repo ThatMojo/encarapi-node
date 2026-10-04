@@ -4,14 +4,18 @@ const { EnCarAPI } = require("../src/index.js");
 (async () => {
   const client = new EnCarAPI(process.env.ENCARAPI_KEY); // required
 
-  const catalog = await client.catalog({ count: true });
-  console.log("catalog:", JSON.stringify(catalog).slice(0, 200));
+  // Korean catalog (Encar by default), English values, with total count
+  const kr = await client.korea.catalog({ manufacturer: "Hyundai", lang: "en", limit: 5, count: true });
+  console.log("Korea:", kr.Count, "matches, first:", kr.SearchResults[0]?.Id);
 
-  const facets = await client.nav();
-  console.log("facets:", JSON.stringify(facets).slice(0, 200));
+  // All three Korean marketplaces, deduplicated (plan-dependent, see encarapi.com/#pricing)
+  // const all = await client.korea.catalog({ source: "all", limit: 5, count: true });
 
-  // const detail = await client.vehicle("12345678");
-  // console.log(detail);
+  // Full detail for one vehicle (Encar id, "kbc:<id>" or "kcar:<id>")
+  // const car = await client.korea.vehicle("12345678");
+
+  // Chinese listings (ChinaCarAPI key or EnCarAPI key with the China add-on)
+  // const cn = await client.china.catalog({ make: "BYD", limit: 5 });
 })().catch((e) => {
   console.error(e.message);
   process.exit(1);
