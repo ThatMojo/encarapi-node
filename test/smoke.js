@@ -77,6 +77,56 @@ function fakeFetch(status, payload) {
   assert.ok(!calls[1].url.searchParams.has("since"), "since only on the first call");
   assert.strictEqual(feed.korea.lastCursor, 12);
 
+  // China iterateCatalog: follows pages, stops on a short page
+  calls.length = 0;
+  const cnPages = [{ results: [{ id: "1" }, { id: "2" }] }, { results: [{ id: "3" }] }];
+  const cn = new ChinaCarAPI("cn_key", {
+    fetch: async (url) => {
+      calls.push({ url: new URL(url) });
+      return { status: 200, ok: true, text: async () => JSON.stringify(cnPages.shift()) };
+    },
+  });
+  const cnItems = [];
+  for await (const it of cn.iterateCatalog({ make: "BYD", limit: 2 })) cnItems.push(it.id);
+  assert.deepStrictEqual(cnItems, ["1", "2", "3"]);
+  assert.strictEqual(calls[1].url.searchParams.get("page"), "2");
+  assert.strictEqual(calls[1].url.searchParams.get("make"), "BYD");
+
+  // ... and never asks beyond the 10,000-result depth limit (page * limit)
+  calls.length = 0;
+  const deep = new ChinaCarAPI("cn_key", {
+    fetch: async (url) => {
+      calls.push({ url: new URL(url) });
+      return { status: 200, ok: true, text: async () => JSON.stringify({ results: Array.from({ length: 100 }, (_, i) => ({ id: String(i) })) }) };
+    },
+  });
+  let deepCount = 0;
+  for await (const _ of deep.iterateCatalog({ page: 99 })) deepCount++;
+  assert.strictEqual(deepCount, 200);
+  assert.deepStrictEqual(calls.map((x) => x.url.searchParams.get("page")), ["99", "100"]);
+
+  // China iterateChanges: yields events, follows nextCursor while hasMore
+  calls.length = 0;
+  const cnFeed = [
+    { cursor: 0, nextCursor: 7, hasMore: true, changes: [{ id: 5, vehicleId: "a", type: "new" }, { id: 7, vehicleId: "b", type: "price" }] },
+    { cursor: 7, nextCursor: 9, hasMore: false, changes: [{ id: 9, vehicleId: "c", type: "removed" }] },
+  ];
+  const cnSync = new EnCarAPI("kr_key", {
+    chinaKey: "cn_key",
+    fetch: async (url) => {
+      calls.push({ url: new URL(url) });
+      return { status: 200, ok: true, text: async () => JSON.stringify(cnFeed.shift()) };
+    },
+  });
+  const cnEvs = [];
+  for await (const ev of cnSync.china.iterateChanges({ since: "2026-10-01T00:00:00Z", source: "che168" })) cnEvs.push(`${ev.type}:${ev.vehicleId}`);
+  assert.deepStrictEqual(cnEvs, ["new:a", "price:b", "removed:c"]);
+  assert.strictEqual(calls[0].url.origin + calls[0].url.pathname, "https://api.chinacarapi.com/api/catalog/changes");
+  assert.strictEqual(calls[1].url.searchParams.get("cursor"), "7");
+  assert.strictEqual(calls[1].url.searchParams.get("source"), "che168");
+  assert.ok(!calls[1].url.searchParams.has("since"), "since only on the first call");
+  assert.strictEqual(cnSync.china.lastCursor, 9);
+
   // 403 carries status + body (upgrade hint)
   const denied = new EnCarAPI("kr_key", { fetch: fakeFetch(403, { error: "Upgrade to Business" }) });
   await assert.rejects(denied.korea.changes({ cursor: 0 }), (e) => e.status === 403 && /Upgrade to Business/.test(e.body));

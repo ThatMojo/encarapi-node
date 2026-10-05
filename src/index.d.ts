@@ -169,16 +169,45 @@ export interface ChinaCatalogResponse {
   results: Json[];
 }
 
+export interface ChinaChangesParams {
+  /** ISO timestamp for the first call. */
+  since?: string;
+  /** nextCursor from the previous call. */
+  cursor?: number;
+  source?: "dongchedi" | "che168" | (string & {});
+  limit?: number;
+}
+
+export interface ChinaChange extends Json {
+  id: number;
+  source: string;
+  vehicleId: string;
+  type: "new" | "price" | "removed" | "relisted";
+  at: string;
+}
+
+export interface ChinaChangesResponse {
+  cursor: number;
+  nextCursor: number;
+  hasMore: boolean;
+  changes: ChinaChange[];
+}
+
 /** Chinese used-car data: Dongchedi and Che168. */
 export class ChinaClient {
   constructor(apiKey: string, options?: Pick<ClientOptions, "fetch"> & { baseUrl?: string });
+  /** Cursor to resume from after iterateChanges() finished. */
+  lastCursor?: number;
   catalog(params?: ChinaCatalogParams): Promise<ChinaCatalogResponse>;
-  vehicle(id: string, params?: { lang?: "en" | "zh" }): Promise<Json>;
-  inspection(id: string, params?: { lang?: "en" | "zh" }): Promise<Json>;
+  /** All pages up to the API's 10,000-result depth limit. */
+  iterateCatalog(params?: ChinaCatalogParams): AsyncGenerator<Json, void, unknown>;
+  vehicle(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
+  inspection(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
   bulkVehicles(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
   /** Alias of bulkVehicles. */
   bulk(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
-  changes(params: { since?: string; cursor?: number; source?: string; limit?: number }): Promise<Json>;
+  changes(params: ChinaChangesParams): Promise<ChinaChangesResponse>;
+  iterateChanges(params: ChinaChangesParams): AsyncGenerator<ChinaChange, void, unknown>;
   exportCsv(params?: Json): Promise<string>;
   enums(params?: Json): Promise<Json>;
   models(make: string | number): Promise<Json>;
