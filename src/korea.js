@@ -15,7 +15,7 @@ class KoreaClient {
     this.http = new HttpClient({
       apiKey,
       baseUrl: options.baseUrl || "https://api.encarapi.com",
-      signupUrl: "https://encarapi.com",
+      signupUrl: "https://encarapi.com/?utm_source=sdk&utm_medium=encarapi-node&utm_content=error#pricing",
       product: "EnCarAPI",
       fetchImpl: options.fetch,
     });

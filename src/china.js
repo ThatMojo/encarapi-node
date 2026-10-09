@@ -16,7 +16,7 @@ class ChinaClient {
     this.http = new HttpClient({
       apiKey,
       baseUrl: options.baseUrl || "https://api.chinacarapi.com",
-      signupUrl: "https://chinacarapi.com",
+      signupUrl: "https://chinacarapi.com/?utm_source=sdk&utm_medium=encarapi-node&utm_content=error#pricing",
       product: "ChinaCarAPI",
       fetchImpl: options.fetch,
     });

@@ -23,7 +23,7 @@ class EnCarAPI {
     if (!apiKey && !chinaKey) {
       throw new EnCarAPIError(
         "An API key is required. Pass new EnCarAPI('YOUR_KEY') or set ENCARAPI_KEY " +
-          "(Korea) / CHINACARAPI_KEY (China). Get a key at https://encarapi.com"
+          "(Korea) / CHINACARAPI_KEY (China). Get a key at https://encarapi.com/?utm_source=sdk&utm_medium=encarapi-node&utm_content=error"
       );
     }
     this._apiKey = apiKey;
@@ -35,7 +35,7 @@ class EnCarAPI {
   get korea() {
     if (!this._korea) {
       if (!this._apiKey) {
-        throw new EnCarAPIError("An EnCarAPI key is required for Korean data. Get one at https://encarapi.com");
+        throw new EnCarAPIError("An EnCarAPI key is required for Korean data. Get one at https://encarapi.com/?utm_source=sdk&utm_medium=encarapi-node&utm_content=error");
       }
       this._korea = new KoreaClient(this._apiKey, { baseUrl: this._options.baseUrl, fetch: this._options.fetch });
     }
@@ -68,7 +68,7 @@ class ChinaCarAPI extends ChinaClient {
     if (!apiKey) {
       throw new EnCarAPIError(
         "A ChinaCarAPI key is required. Pass new ChinaCarAPI('YOUR_KEY') or set CHINACARAPI_KEY. " +
-          "Get a key at https://chinacarapi.com"
+          "Get a key at https://chinacarapi.com/?utm_source=sdk&utm_medium=encarapi-node&utm_content=error"
       );
     }
     super(apiKey, options);

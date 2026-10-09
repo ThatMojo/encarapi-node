@@ -1,19 +1,19 @@
 # EnCarAPI: Node.js client for Korean and Chinese used car data
 
-Official **Node.js / TypeScript client** for [EnCarAPI](https://encarapi.com), the REST
+Official **Node.js / TypeScript client** for [EnCarAPI](https://encarapi.com/?utm_source=readme&utm_medium=encarapi-node), the REST
 **Encar API** and **Korean Car API**. One package for:
 
 - **Korea:** Encar.com, KB Chachacha (`source: "kbc"`) and K Car (`source: "kcar"`), with
   photos, specs, options, inspection reports, accident and ownership records, condition
   reports, price history, a change feed and full catalog export.
-- **China:** Dongchedi and Che168 in English via [ChinaCarAPI](https://chinacarapi.com/?utm_source=github&utm_medium=encarapi_sdk_node)
+- **China:** Dongchedi and Che168 in English via [ChinaCarAPI](https://chinacarapi.com/?utm_source=readme&utm_medium=encarapi-node)
   (separate key or the China add-on for EnCarAPI keys).
 
 Built for car exporters, dealers and marketplaces that need reliable used car data without
 scraping, proxies or geo-blocks.
 
 > **An API key is required.** The data is a paid service. Get a key (5-day trial) at
-> **[encarapi.com](https://encarapi.com)**.
+> **[encarapi.com](https://encarapi.com/?utm_source=readme&utm_medium=encarapi-node)**.
 
 ## Install
 
@@ -128,10 +128,10 @@ try {
 
 ## Links
 
-- Website and pricing: https://encarapi.com
-- Documentation: https://encarapi.com/documentation
+- Website and pricing: [encarapi.com](https://encarapi.com/?utm_source=readme&utm_medium=encarapi-node)
+- Documentation: [encarapi.com/documentation](https://encarapi.com/documentation?utm_source=readme&utm_medium=encarapi-node)
 - OpenAPI reference: https://api.encarapi.com/reference
-- China data: https://chinacarapi.com/?utm_source=github&utm_medium=encarapi_sdk_node
+- China data: [chinacarapi.com](https://chinacarapi.com/?utm_source=readme&utm_medium=encarapi-node)
 - Python client: https://github.com/ThatMojo/encarapi-python
 
 EnCarAPI is an independent service and not affiliated with Encar, KB Chachacha, K Car,
