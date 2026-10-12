@@ -65,10 +65,17 @@ export interface KoreaCatalogParams {
   exclude_prices?: string;
   exclude_duplicates?: Bool;
   min_first_seen?: string;
+  /** Region codes, comma = OR (seoul, gyeonggi, busan, ...). Encar listings only for now. */
+  region?: string;
+  /** Cities, comma = OR: value from korea.enums().city (e.g. "suwon"), English or Korean name. Encar only. */
+  city?: string;
+  /** Keyset cursor for sort "id": nextAfter of the previous response. */
+  after?: string;
   /** Raw Encar q-grammar (alternative to the flat filters). */
   q?: string;
   lang?: "en";
-  sort?: "newest" | "price_asc" | "price_desc" | "mileage_asc" | "mileage_desc" | "year_desc" | "year_asc";
+  /** "id" = stable listing-id order; page with `after` (see iterateCatalogById). */
+  sort?: "newest" | "price_asc" | "price_desc" | "mileage_asc" | "mileage_desc" | "year_desc" | "year_asc" | "id";
   page?: number;
   limit?: number;
   count?: Bool;
@@ -77,6 +84,10 @@ export interface KoreaCatalogParams {
 export interface KoreaCatalogResponse {
   Count?: number;
   SearchResults: Json[];
+  /** Only with sort "id": pass as `after` for the next page; null on the last page. */
+  nextAfter?: string | null;
+  /** Only with sort "id": true while more pages follow. */
+  hasMore?: boolean;
   [key: string]: any;
 }
 
@@ -115,6 +126,10 @@ export class KoreaClient {
   enums(params?: { source?: KoreaSource }): Promise<Json>;
   modelSearch(search: string, params?: { limit?: number; source?: KoreaSource; exclude_duplicates?: Bool; has_photos?: Bool; exclude_prices?: string; min_price?: number }): Promise<Json>;
   iterateCatalog(params?: KoreaCatalogParams): AsyncGenerator<Json, void, unknown>;
+  /** Complete, stable traversal (sort=id + after): nothing repeated or skipped while the catalog changes. */
+  iterateCatalogById(params?: KoreaCatalogParams): AsyncGenerator<Json, void, unknown>;
+  /** iterateCatalogById() for lease-takeover and rental listings. */
+  iterateLeasingById(params?: KoreaCatalogParams): AsyncGenerator<Json, void, unknown>;
   /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
   vehicle(id: string, params?: { lang?: "en" }): Promise<Json>;
   inspection(id: string): Promise<Json>;
@@ -130,7 +145,8 @@ export class KoreaClient {
   changes(params: KoreaChangesParams): Promise<KoreaChangesResponse>;
   iterateChanges(params: KoreaChangesParams): AsyncGenerator<KoreaChange, void, unknown>;
   /** CSV text. */
-  exportCsv(params?: { source?: KoreaSource }): Promise<string>;
+  /** sell_type: "sale" (default), "lease", "rental", a comma list or "all". */
+  exportCsv(params?: { source?: KoreaSource; sell_type?: string }): Promise<string>;
   makesCsv(params?: { source?: KoreaSource }): Promise<string>;
   modelsCsv(params?: { source?: KoreaSource }): Promise<string>;
   badgesCsv(params?: { source?: KoreaSource }): Promise<string>;

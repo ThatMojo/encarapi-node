@@ -49,6 +49,32 @@ class KoreaClient {
     }
   }
 
+  /**
+   * Complete, stable traversal via sort=id + after (keyset cursor): rows never
+   * shift between pages while the catalog changes, so nothing is repeated or
+   * skipped. Yields every matching listing once, in listing-id order.
+   * for await (const car of korea.iterateCatalogById({ manufacturer: "BMW" })) {}
+   */
+  async *iterateCatalogById(params = {}) {
+    yield* this._iterateById("/api/catalog", params);
+  }
+
+  /** Same as iterateCatalogById() for lease-takeover and rental listings. */
+  async *iterateLeasingById(params = {}) {
+    yield* this._iterateById("/api/catalog/leasing", params);
+  }
+
+  async *_iterateById(path, params) {
+    const { page, ...rest } = params;
+    let query = { ...rest, sort: "id", limit: params.limit || 1000 };
+    for (;;) {
+      const res = await this.http.request("GET", path, { params: query });
+      for (const item of res.SearchResults || []) yield item;
+      if (!res.hasMore || !res.nextAfter) return;
+      query = { ...query, after: res.nextAfter };
+    }
+  }
+
   // -- one vehicle -------------------------------------------------------------
 
   /** Full vehicle detail. Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
@@ -105,7 +131,10 @@ class KoreaClient {
     }
   }
 
-  /** Full catalog as CSV text. */
+  /**
+   * Full catalog as CSV text. { sell_type: "lease,rental" } for the lease/rental
+   * inventory, { source: "kbc" } etc. for other marketplaces.
+   */
   exportCsv(params) { return this.http.request("GET", "/api/catalog/export", { params, text: true }); }
 
   // -- reference data -------------------------------------------------------------

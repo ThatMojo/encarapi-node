@@ -82,7 +82,9 @@ saveCursor(client.china.lastCursor);
 |---|---|---|
 | `catalog(params)` | `GET /api/catalog` | Search & list. `source`: `encar` (default), `kbc`, `kcar`, `all` |
 | `iterateCatalog(params)` | `GET /api/catalog` | Async iterator over all pages |
+| `iterateCatalogById(params)` | `GET /api/catalog?sort=id` | Complete, stable traversal (keyset cursor, nothing repeated or skipped) |
 | `leasing(params)` | `GET /api/catalog/leasing` | Lease takeovers and rentals |
+| `iterateLeasingById(params)` | `GET /api/catalog/leasing?sort=id` | Complete, stable traversal of lease/rental listings |
 | `nav(params)` | `GET /api/nav` | Filter facets with counts |
 | `enums(params)` | `GET /api/enums` | Valid values for the flat filters |
 | `modelSearch(search, params)` | `GET /api/model-search` | Model autocomplete |
@@ -94,7 +96,7 @@ saveCursor(client.china.lastCursor);
 | `bulkVehicles(ids)` / `bulkInspections(ids)` / `bulkRecords(ids)` | `POST /api/.../bulk` | Up to 500 ids (Business/Scale) |
 | `inspectionVersions(id)` / `recordVersions(id)` | `GET /api/.../versions` | Report history (Business/Scale) |
 | `changes(params)` / `iterateChanges(params)` | `GET /api/catalog/changes` | Incremental sync (Business/Scale) |
-| `exportCsv()` | `GET /api/catalog/export` | Full catalog CSV (Business/Scale) |
+| `exportCsv(params)` | `GET /api/catalog/export` | Full catalog CSV (Business/Scale); `{ sell_type: "lease,rental" }` for lease/rental |
 | `makesCsv()` / `modelsCsv()` / `badgesCsv()` | `GET /api/taxonomy/*.csv` | Reference data |
 
 ## China API (`client.china`)
