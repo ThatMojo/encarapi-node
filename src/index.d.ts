@@ -186,6 +186,8 @@ export class KoreaClient {
   trucks(params?: KoreaTruckParams): Promise<KoreaCatalogResponse>;
   /** Every Encar / K Car listing of one VIN, active and removed (Business/Scale). */
   vehicleByVin(vin: string): Promise<Json>;
+  /** One truck with detail page, inspection report, cargo box, VIN and plate (Business/Scale). */
+  truck(id: string, params?: { lang?: "en" }): Promise<Json>;
   /** Valid truck filter values with counts. */
   truckEnums(): Promise<Json>;
   /** Full truck inventory as CSV text (Business/Scale). */

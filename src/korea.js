@@ -69,6 +69,9 @@ class KoreaClient {
   /** Encar trucks & buses: { form: "cargo", max_tons: 1, lang: "en" }. Values from truckEnums(). */
   trucks(params) { return this.http.request("GET", "/api/catalog/trucks", { params }); }
 
+  /** One truck with detail page, inspection report, cargo box, VIN and plate (Business/Scale). */
+  truck(id, params) { return this.http.request("GET", `/api/catalog/trucks/${enc(id)}`, { params }); }
+
   /** Valid truck filter values with counts (form, use, fuel, transmission, color, manufacturer, capacity_tons, region). */
   truckEnums() { return this.http.request("GET", "/api/catalog/trucks/enums"); }
 
