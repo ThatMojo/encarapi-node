@@ -85,6 +85,15 @@ saveCursor(client.china.lastCursor);
 | `iterateCatalogById(params)` | `GET /api/catalog?sort=id` | Complete, stable traversal (keyset cursor, nothing repeated or skipped) |
 | `leasing(params)` | `GET /api/catalog/leasing` | Lease takeovers and rentals |
 | `iterateLeasingById(params)` | `GET /api/catalog/leasing?sort=id` | Complete, stable traversal of lease/rental listings |
+| `vehicleByVin(vin)` | `GET /api/vehicle/by-vin/{vin}` | All listings of one VIN incl. removed ones (Business/Scale) |
+| `trucks(params)` | `GET /api/catalog/trucks` | Trucks, buses and special vehicles (Business/Scale) |
+| `truckEnums()` | `GET /api/catalog/trucks/enums` | Truck filter values with counts |
+| `trucksCsv()` | `GET /api/catalog/trucks/export` | Full truck inventory CSV (Business/Scale) |
+| `iterateTrucksById(params)` | `GET /api/catalog/trucks?sort=id` | Complete, stable traversal of the truck catalog |
+| `equipment(params)` | `GET /api/catalog/equipment` | Used excavators (Business/Scale) |
+| `equipmentEnums()` | `GET /api/catalog/equipment/enums` | Equipment filter values with counts |
+| `equipmentCsv()` | `GET /api/catalog/equipment/export` | Full equipment inventory CSV (Business/Scale) |
+| `iterateEquipmentById(params)` | `GET /api/catalog/equipment?sort=id` | Complete, stable traversal of the equipment catalog |
 | `nav(params)` | `GET /api/nav` | Filter facets with counts |
 | `enums(params)` | `GET /api/enums` | Valid values for the flat filters |
 | `modelSearch(search, params)` | `GET /api/model-search` | Model autocomplete |

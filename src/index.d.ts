@@ -81,6 +81,58 @@ export interface KoreaCatalogParams {
   count?: Bool;
 }
 
+/** Filters for /api/catalog/trucks. Values from korea.truckEnums(). */
+export interface KoreaTruckParams {
+  form?: "cargo" | "wing_body" | "bus" | "dump_construction" | "crane" | "tank" | "camper" | "waste_transport" | "live_fish" | "tow_transport" | "tractor" | "trailer" | (string & {});
+  manufacturer?: string;
+  /** Substring of the Korean model name, e.g. "포터". */
+  model?: string;
+  min_tons?: number;
+  max_tons?: number;
+  use?: "private" | "commercial" | "other";
+  fuel?: string;
+  transmission?: string;
+  color?: string;
+  min_price?: number;
+  max_price?: number;
+  min_year?: number;
+  max_year?: number;
+  min_mileage?: number;
+  max_mileage?: number;
+  region?: string;
+  sort?: "newest" | "price_asc" | "price_desc" | "mileage_asc" | "mileage_desc" | "year_desc" | "year_asc" | "id";
+  after?: string;
+  page?: number;
+  limit?: number;
+  count?: Bool;
+  lang?: "en";
+}
+
+/** Filters for /api/catalog/equipment. Values from korea.equipmentEnums(). */
+export interface KoreaEquipmentParams {
+  maker?: string;
+  model?: string;
+  sub_type?: "crawler" | "wheel" | (string & {});
+  /** e.g. "EXC_CR_LE_6_5" (02 class crawler). */
+  weight_class?: string;
+  min_year?: number;
+  max_year?: number;
+  min_hours?: number;
+  max_hours?: number;
+  /** Price in 만원 (10,000 KRW). */
+  min_price?: number;
+  max_price?: number;
+  has_price?: Bool;
+  /** "sell" (default), "buy", "rent", a comma list or "all". */
+  deal_type?: string;
+  region?: string;
+  sort?: "newest" | "price_asc" | "price_desc" | "hours_asc" | "year_desc" | "year_asc" | "id";
+  after?: string;
+  page?: number;
+  limit?: number;
+  count?: Bool;
+}
+
 export interface KoreaCatalogResponse {
   Count?: number;
   SearchResults: Json[];
@@ -130,6 +182,24 @@ export class KoreaClient {
   iterateCatalogById(params?: KoreaCatalogParams): AsyncGenerator<Json, void, unknown>;
   /** iterateCatalogById() for lease-takeover and rental listings. */
   iterateLeasingById(params?: KoreaCatalogParams): AsyncGenerator<Json, void, unknown>;
+  /** Encar trucks, buses and special vehicles (Business/Scale). */
+  trucks(params?: KoreaTruckParams): Promise<KoreaCatalogResponse>;
+  /** Every Encar / K Car listing of one VIN, active and removed (Business/Scale). */
+  vehicleByVin(vin: string): Promise<Json>;
+  /** Valid truck filter values with counts. */
+  truckEnums(): Promise<Json>;
+  /** Full truck inventory as CSV text (Business/Scale). */
+  trucksCsv(params?: { compress?: Bool }): Promise<string>;
+  /** Complete, stable traversal of the truck catalog (sort=id + after). */
+  iterateTrucksById(params?: KoreaTruckParams): AsyncGenerator<Json, void, unknown>;
+  /** Used excavators from 굴삭기나라 (Business/Scale). */
+  equipment(params?: KoreaEquipmentParams): Promise<KoreaCatalogResponse>;
+  /** Valid equipment filter values with counts. */
+  equipmentEnums(): Promise<Json>;
+  /** Full equipment inventory as CSV text (Business/Scale). */
+  equipmentCsv(params?: { compress?: Bool }): Promise<string>;
+  /** Complete, stable traversal of the equipment catalog (sort=id + after). */
+  iterateEquipmentById(params?: KoreaEquipmentParams): AsyncGenerator<Json, void, unknown>;
   /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
   vehicle(id: string, params?: { lang?: "en" }): Promise<Json>;
   inspection(id: string): Promise<Json>;

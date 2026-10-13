@@ -64,6 +64,38 @@ class KoreaClient {
     yield* this._iterateById("/api/catalog/leasing", params);
   }
 
+  // -- trucks, buses, special vehicles (Business/Scale) ----------------------
+
+  /** Encar trucks & buses: { form: "cargo", max_tons: 1, lang: "en" }. Values from truckEnums(). */
+  trucks(params) { return this.http.request("GET", "/api/catalog/trucks", { params }); }
+
+  /** Valid truck filter values with counts (form, use, fuel, transmission, color, manufacturer, capacity_tons, region). */
+  truckEnums() { return this.http.request("GET", "/api/catalog/trucks/enums"); }
+
+  /** Full truck inventory as CSV text (Business/Scale). */
+  trucksCsv(params) { return this.http.request("GET", "/api/catalog/trucks/export", { params, text: true }); }
+
+  /** Complete, stable traversal of the truck catalog (sort=id + after). */
+  async *iterateTrucksById(params = {}) {
+    yield* this._iterateById("/api/catalog/trucks", params);
+  }
+
+  // -- construction equipment / excavators (Business/Scale) -----------------
+
+  /** Used excavators from 굴삭기나라: { sub_type: "crawler", max_hours: 5000 }. Values from equipmentEnums(). */
+  equipment(params) { return this.http.request("GET", "/api/catalog/equipment", { params }); }
+
+  /** Valid equipment filter values with counts (maker, sub_type, weight_class, deal_type, region). */
+  equipmentEnums() { return this.http.request("GET", "/api/catalog/equipment/enums"); }
+
+  /** Full equipment inventory as CSV text (Business/Scale). */
+  equipmentCsv(params) { return this.http.request("GET", "/api/catalog/equipment/export", { params, text: true }); }
+
+  /** Complete, stable traversal of the equipment catalog (sort=id + after). */
+  async *iterateEquipmentById(params = {}) {
+    yield* this._iterateById("/api/catalog/equipment", params);
+  }
+
   async *_iterateById(path, params) {
     const { page, ...rest } = params;
     let query = { ...rest, sort: "id", limit: params.limit || 1000 };
@@ -79,6 +111,9 @@ class KoreaClient {
 
   /** Full vehicle detail. Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
   vehicle(id, params) { return this.http.request("GET", `/api/vehicle/${enc(id)}`, { params }); }
+
+  /** Every Encar / K Car listing of one VIN, active and removed (Business/Scale). */
+  vehicleByVin(vin) { return this.http.request("GET", `/api/vehicle/by-vin/${enc(vin)}`); }
 
   /** Official inspection report (성능점검). */
   inspection(id) { return this.http.request("GET", `/api/inspection/${enc(id)}`); }

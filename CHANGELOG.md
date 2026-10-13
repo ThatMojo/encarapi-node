@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- Trucks, buses and special vehicles (Encar Truck, Business/Scale): `korea.trucks(params)`,
+  `korea.truckEnums()`, `korea.trucksCsv()`, `korea.iterateTrucksById(params)`; type `KoreaTruckParams`.
+- Used excavators (굴삭기나라, Business/Scale): `korea.equipment(params)`, `korea.equipmentEnums()`,
+  `korea.equipmentCsv()`, `korea.iterateEquipmentById(params)`; type `KoreaEquipmentParams`.
+- `korea.vehicleByVin(vin)`: every Encar / K Car listing of one VIN, active and removed (Business/Scale).
+- The catalog `region` filter now also works with a single other source (`source: "kbc"` or `"kcar"`).
+
 ## 1.2.0
 
 - `korea.iterateCatalogById(params)` / `korea.iterateLeasingById(params)`: complete, stable
