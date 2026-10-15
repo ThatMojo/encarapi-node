@@ -291,6 +291,8 @@ export class ChinaClient {
   iterateCatalog(params?: ChinaCatalogParams): AsyncGenerator<Json, void, unknown>;
   vehicle(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
   inspection(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
+  /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). */
+  specs(trimId: string | number): Promise<Json>;
   bulkVehicles(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
   /** Alias of bulkVehicles. */
   bulk(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;

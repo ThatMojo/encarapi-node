@@ -46,6 +46,9 @@ class ChinaClient {
   /** Inspection report: accident, flood and fire checks, battery data for EVs. */
   inspection(id, params) { return this.http.request("GET", `/api/inspection/${enc(id)}`, { params }); }
 
+  /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record): cc, kW, hp, torque, emission standard, weights, EV battery. */
+  specs(trimId) { return this.http.request("GET", `/api/specs/${enc(trimId)}`); }
+
   /** Up to 500 full records in one call (Business/Scale). */
   bulkVehicles(ids, params) { return this.http.request("POST", "/api/vehicle/bulk", { params, body: { ids } }); }
 

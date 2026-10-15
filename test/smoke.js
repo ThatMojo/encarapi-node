@@ -48,6 +48,10 @@ function fakeFetch(status, payload) {
   assert.strictEqual(c.url.origin, "https://api.chinacarapi.com");
   assert.strictEqual(c.init.headers["x-api-key"], "cn_key");
 
+  await client.china.specs(62342);
+  c = calls.pop();
+  assert.strictEqual(c.url.pathname, "/api/specs/62342");
+
   // 0.x shortcuts still work
   const r = await client.catalog({});
   assert.strictEqual(r.Count, 1);
