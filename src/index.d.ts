@@ -170,6 +170,15 @@ export interface KoreaChange extends Json {
   eventId?: string;
   /** When the change was recorded (ISO 8601). */
   occurredAt?: string;
+  /**
+   * Only present when true. On KB Chachacha (source "kbc"): the listing duplicates an active Encar
+   * listing and is not served by korea.catalog() / exportCsv(); setting or clearing the flag arrives as
+   * an "updated" event with "duplicate" in changedFields. To stay consistent with the catalog, drop such
+   * items and add them back when an update arrives without the flag.
+   */
+  IsDuplicate?: boolean;
+  /** Only present together with IsDuplicate: the listing id of the original (Encar id for KB Chachacha), numeric string. */
+  DuplicateOf?: string;
 }
 
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */

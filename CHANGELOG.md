@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.2
+
+- Types and docs only, no runtime change: `KoreaChange` now declares `IsDuplicate` and `DuplicateOf`.
+  KB Chachacha listings that duplicate an active Encar listing (matched by the Korean plate number or,
+  when KB Chachacha publishes no plate, by first registration month, mileage and price; recomputed once a
+  day) are not served by the catalog endpoints, with or without `source` (also not with
+  `source: "kbc"` alone). In `korea.changes({ source: "kbc" })` and `korea.vehicle("kbc:...")` they carry
+  `IsDuplicate: true` and `DuplicateOf` (the Encar listing id); setting or clearing the flag arrives as an
+  `updated` event with `duplicate` in `changedFields`. To keep a local copy consistent with the catalog,
+  drop KB Chachacha items that arrive with `IsDuplicate: true` and add them back when an update arrives
+  without it.
+- API release 18 October 2026: the matching was improved (plate-based). The KB Chachacha feed carries one
+  `updated` event with `duplicate` for every currently flagged listing.
+
 ## 1.4.1
 
 - Korea change feed: every entry now carries `eventId` (its position in the log, same scale as `nextCursor`)
