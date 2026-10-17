@@ -81,6 +81,15 @@ function fakeFetch(status, payload) {
   assert.ok(!calls[1].url.searchParams.has("since"), "since only on the first call");
   assert.strictEqual(feed.korea.lastCursor, 12);
 
+  // with eventId the entries come in event order across the groups
+  const ordered = new EnCarAPI("kr_key", {
+    fetch: async () => ({ status: 200, ok: true, text: async () => JSON.stringify({ nextCursor: "103", hasMore: false,
+      added: [{ Id: "a", eventId: "101" }], updated: [{ Id: "b", eventId: "103" }], removed: [{ listingId: "b", eventId: "102" }] }) }),
+  });
+  const ord = [];
+  for await (const ev of ordered.korea.iterateChanges({ cursor: 100 })) ord.push(`${ev.type}:${ev.eventId}`);
+  assert.deepStrictEqual(ord, ["added:101", "removed:102", "updated:103"]);
+
   // China iterateCatalog: follows pages, stops on a short page
   calls.length = 0;
   const cnPages = [{ results: [{ id: "1" }, { id: "2" }] }, { results: [{ id: "3" }] }];

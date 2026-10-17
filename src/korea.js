@@ -160,9 +160,14 @@ class KoreaClient {
     let query = { ...params };
     for (;;) {
       const res = await this.changes(query);
+      const page = [];
       for (const type of ["added", "updated", "reappeared", "removed"]) {
-        for (const item of res[type] || []) yield { type, ...item };
+        for (const item of res[type] || []) page.push({ type, ...item });
       }
+      // Entries carry eventId (API since 2026-10-17): yield them in event order
+      // across the groups, so a later event for the same listing always comes last.
+      if (page.every((e) => e.eventId != null)) page.sort((a, b) => Number(a.eventId) - Number(b.eventId));
+      yield* page;
       if (res.nextCursor !== undefined) this.lastCursor = res.nextCursor;
       if (!(res.hasMore || res.truncated) || res.nextCursor === undefined) return;
       query = { ...params, since: undefined, cursor: res.nextCursor };

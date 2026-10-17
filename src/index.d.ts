@@ -153,7 +153,8 @@ export interface KoreaChangesParams {
 }
 
 export interface KoreaChangesResponse {
-  nextCursor?: number;
+  /** Position to resume from (numeric string; pass it back as `cursor`). */
+  nextCursor?: number | string;
   hasMore?: boolean;
   truncated?: boolean;
   added?: Json[];
@@ -165,13 +166,17 @@ export interface KoreaChangesResponse {
 
 export interface KoreaChange extends Json {
   type: "added" | "updated" | "reappeared" | "removed";
+  /** Position of the event in the log (numeric string, same scale as nextCursor). Highest = latest. */
+  eventId?: string;
+  /** When the change was recorded (ISO 8601). */
+  occurredAt?: string;
 }
 
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */
 export class KoreaClient {
   constructor(apiKey: string, options?: Pick<ClientOptions, "baseUrl" | "fetch">);
   /** Cursor to resume from after iterateChanges() finished. */
-  lastCursor?: number;
+  lastCursor?: number | string;
   catalog(params?: KoreaCatalogParams): Promise<KoreaCatalogResponse>;
   leasing(params?: KoreaCatalogParams): Promise<KoreaCatalogResponse>;
   nav(params?: KoreaCatalogParams): Promise<Json>;
