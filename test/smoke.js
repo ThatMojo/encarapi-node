@@ -52,6 +52,15 @@ function fakeFetch(status, payload) {
   c = calls.pop();
   assert.strictEqual(c.url.pathname, "/api/specs/62342");
 
+  await client.china.vehicleByUrl("https://m.che168.com/cardetail/index?infoid=60234085&x=1");
+  c = calls.pop();
+  assert.strictEqual(c.url.pathname, "/api/vehicle/by-url");
+  assert.strictEqual(c.url.searchParams.get("url"), "https://m.che168.com/cardetail/index?infoid=60234085&x=1");
+
+  await client.china.catalog({ power_min: 150, power_max: 250 });
+  c = calls.pop();
+  assert.strictEqual(c.url.searchParams.get("power_min"), "150");
+
   // 0.x shortcuts still work
   const r = await client.catalog({});
   assert.strictEqual(r.Count, 1);

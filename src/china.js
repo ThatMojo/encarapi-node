@@ -22,7 +22,7 @@ class ChinaClient {
     });
   }
 
-  /** Search listings. Filters: source, make, model, year_min/max, price_min/max (CNY), mileage_max, city, fuel, has_report, export_ready, sort, page, limit, lang. */
+  /** Search listings. Filters: source, make, model, year_min/max, price_min/max (CNY), mileage_max, power_min/max (hp), city, fuel, has_report, export_ready, sort, page, limit, lang. */
   catalog(params) { return this.http.request("GET", "/api/catalog", { params }); }
 
   /**
@@ -42,6 +42,9 @@ class ChinaClient {
 
   /** Full record for one car: price history, photos, seller, export status, alsoListedOn. */
   vehicle(id, params) { return this.http.request("GET", `/api/vehicle/${enc(id)}`, { params }); }
+
+  /** Same full record, looked up by a Che168 or Dongchedi listing link (desktop, mobile or app; a pasted share text works too). */
+  vehicleByUrl(url, params) { return this.http.request("GET", "/api/vehicle/by-url", { params: { ...params, url } }); }
 
   /** Inspection report: accident, flood and fire checks, battery data for EVs. */
   inspection(id, params) { return this.http.request("GET", `/api/inspection/${enc(id)}`, { params }); }

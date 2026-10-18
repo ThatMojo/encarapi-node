@@ -251,6 +251,10 @@ export interface ChinaCatalogParams {
   price_min?: number;
   price_max?: number;
   mileage_max?: number;
+  /** Minimum power in hp; cars without a known power figure are left out. */
+  power_min?: number;
+  /** Maximum power in hp. */
+  power_max?: number;
   city?: string;
   fuel?: string;
   has_report?: Bool;
@@ -304,6 +308,8 @@ export class ChinaClient {
   /** All pages up to the API's 10,000-result depth limit. */
   iterateCatalog(params?: ChinaCatalogParams): AsyncGenerator<Json, void, unknown>;
   vehicle(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
+  /** Full record by Che168/Dongchedi listing link (desktop, mobile or app). */
+  vehicleByUrl(url: string, params?: { lang?: "en" | "zh" }): Promise<Json>;
   inspection(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
   /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). */
   specs(trimId: string | number): Promise<Json>;
