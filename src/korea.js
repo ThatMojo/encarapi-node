@@ -138,8 +138,8 @@ class KoreaClient {
 
   // -- bulk & sync (Business/Scale) ---------------------------------------------
 
-  /** Up to 500 vehicle details in one call. */
-  bulkVehicles(ids) { return this.http.request("POST", "/api/vehicle/bulk", { body: { ids } }); }
+  /** Up to 500 vehicle details in one call. params.lang: "en", "ru" or "de", as on vehicle(). */
+  bulkVehicles(ids, params) { return this.http.request("POST", "/api/vehicle/bulk", { params, body: { ids } }); }
 
   /** Up to 500 inspection reports in one call. */
   bulkInspections(ids) { return this.http.request("POST", "/api/inspection/bulk", { body: { ids } }); }

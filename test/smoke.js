@@ -43,6 +43,11 @@ function fakeFetch(status, payload) {
   assert.strictEqual(c.init.method, "POST");
   assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["1", "2"] });
 
+  await client.korea.bulkVehicles(["1"], { lang: "de" });
+  c = calls.pop();
+  assert.strictEqual(c.url.searchParams.get("lang"), "de");
+  assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["1"] });
+
   await client.china.catalog({ make: "BYD" });
   c = calls.pop();
   assert.strictEqual(c.url.origin, "https://api.chinacarapi.com");

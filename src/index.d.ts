@@ -22,6 +22,8 @@ type Json = Record<string, any>;
 
 /** Korean data source. Encar is the default; "all" is the deduplicated union. */
 export type KoreaSource = "encar" | "kbc" | "kcar" | "all" | (string & {});
+/** Response language: "en" English, "ru" Russian, "de" German display values (ids and codes unchanged). */
+export type KoreaLang = "en" | "ru" | "de";
 
 /** Flat English filters for /api/catalog, /api/nav and /api/catalog/leasing. Values from korea.enums() / korea.nav(). */
 export interface KoreaCatalogParams {
@@ -73,7 +75,7 @@ export interface KoreaCatalogParams {
   after?: string;
   /** Raw Encar q-grammar (alternative to the flat filters). */
   q?: string;
-  lang?: "en";
+  lang?: KoreaLang;
   /** "id" = stable listing-id order; page with `after` (see iterateCatalogById). */
   sort?: "newest" | "price_asc" | "price_desc" | "mileage_asc" | "mileage_desc" | "year_desc" | "year_asc" | "id";
   page?: number;
@@ -105,7 +107,7 @@ export interface KoreaTruckParams {
   page?: number;
   limit?: number;
   count?: Bool;
-  lang?: "en";
+  lang?: KoreaLang;
 }
 
 /** Filters for /api/catalog/equipment. Values from korea.equipmentEnums(). */
@@ -149,7 +151,7 @@ export interface KoreaChangesParams {
   source?: KoreaSource;
   sell_type?: string;
   limit?: number;
-  lang?: "en";
+  lang?: KoreaLang;
 }
 
 export interface KoreaChangesResponse {
@@ -202,7 +204,8 @@ export class KoreaClient {
   catalog(params?: KoreaCatalogParams): Promise<KoreaCatalogResponse>;
   leasing(params?: KoreaCatalogParams): Promise<KoreaCatalogResponse>;
   nav(params?: KoreaCatalogParams): Promise<Json>;
-  enums(params?: { source?: KoreaSource }): Promise<Json>;
+  /** lang "ru" / "de" adds nameRu / nameDe to every value and lists drivetrain and sell_type. */
+  enums(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<Json>;
   modelSearch(search: string, params?: { limit?: number; source?: KoreaSource; exclude_duplicates?: Bool; has_photos?: Bool; exclude_prices?: string; min_price?: number }): Promise<Json>;
   iterateCatalog(params?: KoreaCatalogParams): AsyncGenerator<Json, void, unknown>;
   /** Complete, stable traversal (sort=id + after): nothing repeated or skipped while the catalog changes. */
@@ -214,7 +217,7 @@ export class KoreaClient {
   /** Every Encar / K Car listing of one VIN, active and removed (Business/Scale). */
   vehicleByVin(vin: string): Promise<Json>;
   /** One truck with detail page, inspection report, cargo box, VIN and plate (Business/Scale). */
-  truck(id: string, params?: { lang?: "en" }): Promise<Json>;
+  truck(id: string, params?: { lang?: KoreaLang }): Promise<Json>;
   /** Valid truck filter values with counts. */
   truckEnums(): Promise<Json>;
   /** Full truck inventory as CSV text (Business/Scale). */
@@ -230,7 +233,7 @@ export class KoreaClient {
   /** Complete, stable traversal of the equipment catalog (sort=id + after). */
   iterateEquipmentById(params?: KoreaEquipmentParams): AsyncGenerator<Json, void, unknown>;
   /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
-  vehicle(id: string, params?: { lang?: "en" }): Promise<Json>;
+  vehicle(id: string, params?: { lang?: KoreaLang }): Promise<Json>;
   inspection(id: string): Promise<Json>;
   record(id: string): Promise<Json>;
   refresh(id: string): Promise<Json>;
@@ -238,17 +241,19 @@ export class KoreaClient {
   priceCheck(id: string): Promise<Json>;
   inspectionVersions(id: string): Promise<Json>;
   recordVersions(id: string): Promise<Json>;
-  bulkVehicles(ids: string[]): Promise<Json>;
+  /** lang: "en" (KB Chachacha payloads), "ru" / "de" (KB Chachacha and Encar payloads). */
+  bulkVehicles(ids: string[], params?: { lang?: KoreaLang }): Promise<Json>;
   bulkInspections(ids: string[]): Promise<Json>;
   bulkRecords(ids: string[]): Promise<Json>;
   changes(params: KoreaChangesParams): Promise<KoreaChangesResponse>;
   iterateChanges(params: KoreaChangesParams): AsyncGenerator<KoreaChange, void, unknown>;
   /** CSV text. */
   /** sell_type: "sale" (default), "lease", "rental", a comma list or "all". */
-  exportCsv(params?: { source?: KoreaSource; sell_type?: string }): Promise<string>;
-  makesCsv(params?: { source?: KoreaSource }): Promise<string>;
-  modelsCsv(params?: { source?: KoreaSource }): Promise<string>;
-  badgesCsv(params?: { source?: KoreaSource }): Promise<string>;
+  /** lang "ru" / "de": the label columns in Russian / German, every other column unchanged. */
+  exportCsv(params?: { source?: KoreaSource; sell_type?: string; lang?: "ru" | "de" }): Promise<string>;
+  makesCsv(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<string>;
+  modelsCsv(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<string>;
+  badgesCsv(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<string>;
 }
 
 export interface ChinaCatalogParams {
@@ -346,7 +351,7 @@ export class EnCarAPI {
   /** Shortcut for korea.nav (0.x compatible). */
   nav(params?: KoreaCatalogParams): Promise<Json>;
   /** Shortcut for korea.vehicle (0.x compatible). */
-  vehicle(id: string, params?: { lang?: "en" }): Promise<Json>;
+  vehicle(id: string, params?: { lang?: KoreaLang }): Promise<Json>;
 }
 
 /** China-only client (also published as the `chinacarapi` package). */
