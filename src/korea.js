@@ -4,6 +4,9 @@ const { HttpClient } = require("./http");
 
 const enc = encodeURIComponent;
 
+// Export header to pass as `since` to /api/catalog/changes (a few minutes before the data snapshot).
+const GENERATED_AT = "x-encarapi-generated-at";
+
 /**
  * Korean used-car data: Encar plus KB Chachacha (`source: "kbc"`) and K Car
  * (`source: "kcar"`). Encar is the default source; pass `source: "all"` for the
@@ -78,6 +81,14 @@ class KoreaClient {
   /** Full truck inventory as CSV text (Business/Scale). */
   trucksCsv(params) { return this.http.request("GET", "/api/catalog/trucks/export", { params, text: true }); }
 
+  /**
+   * Streams the truck export to a file (not held in memory); resolves to
+   * { path, bytes, generatedAt }. Continue with changes({ source: "truck", since: generatedAt }).
+   */
+  exportTrucksToFile(path, params) {
+    return this.http.download("/api/catalog/trucks/export", path, { params, generatedAtHeader: GENERATED_AT });
+  }
+
   /** Complete, stable traversal of the truck catalog (sort=id + after). */
   async *iterateTrucksById(params = {}) {
     yield* this._iterateById("/api/catalog/trucks", params);
@@ -93,6 +104,14 @@ class KoreaClient {
 
   /** Full equipment inventory as CSV text (Business/Scale). */
   equipmentCsv(params) { return this.http.request("GET", "/api/catalog/equipment/export", { params, text: true }); }
+
+  /**
+   * Streams the equipment export to a file (not held in memory); resolves to
+   * { path, bytes, generatedAt }. Continue with changes({ source: "equipment", since: generatedAt }).
+   */
+  exportEquipmentToFile(path, params) {
+    return this.http.download("/api/catalog/equipment/export", path, { params, generatedAtHeader: GENERATED_AT });
+  }
 
   /** Complete, stable traversal of the equipment catalog (sort=id + after). */
   async *iterateEquipmentById(params = {}) {
@@ -147,13 +166,13 @@ class KoreaClient {
   /** Up to 500 insurance records in one call. */
   bulkRecords(ids) { return this.http.request("POST", "/api/record/bulk", { body: { ids } }); }
 
-  /** Incremental change feed: { cursor } from the previous call, or { since } right after an export. */
+  /** Incremental change feed: { cursor } from the previous call, or { since } = generatedAt of an export (exportToFile). */
   changes(params) { return this.http.request("GET", "/api/catalog/changes", { params }); }
 
   /**
    * Follows the change feed until it is drained and yields every change once as
    * { type: "added" | "updated" | "reappeared" | "removed", ...item }. Pass
-   * { since } (right after an export) or { cursor } to start; after the loop,
+   * { since } (the generatedAt of an export) or { cursor } to start; after the loop,
    * `korea.lastCursor` holds the cursor to resume from next time.
    */
   async *iterateChanges(params = {}) {
@@ -179,6 +198,15 @@ class KoreaClient {
    * inventory, { source: "kbc" } etc. for other marketplaces.
    */
   exportCsv(params) { return this.http.request("GET", "/api/catalog/export", { params, text: true }); }
+
+  /**
+   * Streams the full catalog export to a file instead of holding it in memory (same
+   * params as exportCsv). Resolves to { path, bytes, generatedAt }; generatedAt is the
+   * X-Encarapi-Generated-At header: start the change feed with { since: generatedAt }.
+   */
+  exportToFile(path, params) {
+    return this.http.download("/api/catalog/export", path, { params, generatedAtHeader: GENERATED_AT });
+  }
 
   // -- reference data -------------------------------------------------------------
 

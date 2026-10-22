@@ -4,6 +4,9 @@ const { HttpClient } = require("./http");
 
 const enc = encodeURIComponent;
 
+// Export header to pass as `since` to /api/catalog/changes (a few minutes before the data snapshot).
+const GENERATED_AT = "x-generated-at";
+
 // /api/catalog serves at most this many results per query (page * limit).
 const CATALOG_DEPTH = 10000;
 
@@ -22,13 +25,17 @@ class ChinaClient {
     });
   }
 
-  /** Search listings. Filters: source, make, model, year_min/max, price_min/max (CNY), mileage_max, power_min/max (hp), city, fuel, has_report, export_ready, sort, page, limit, lang. */
+  /**
+   * Search listings. Filters: source, make, model, year_min/max, price_min/max (CNY), mileage_max,
+   * power_min/max (hp), city, fuel, has_report, export_ready, sort, page, limit, lang
+   * ("zh" original Chinese values, "ru" Russian values for the fixed fields and cities).
+   */
   catalog(params) { return this.http.request("GET", "/api/catalog", { params }); }
 
   /**
    * Async iterator over all catalog pages: for await (const car of china.iterateCatalog({...})) {}
    * Stops at the API's 10,000-result depth limit; for the whole catalog use
-   * exportCsv() plus iterateChanges().
+   * exportToFile() plus iterateChanges().
    */
   async *iterateCatalog(params = {}) {
     const limit = Math.min(params.limit || 100, 100);
@@ -49,8 +56,8 @@ class ChinaClient {
   /** Inspection report: accident, flood and fire checks, battery data for EVs. */
   inspection(id, params) { return this.http.request("GET", `/api/inspection/${enc(id)}`, { params }); }
 
-  /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record): cc, kW, hp, torque, emission standard, weights, EV battery. */
-  specs(trimId) { return this.http.request("GET", `/api/specs/${enc(trimId)}`); }
+  /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record): cc, kW, hp, torque, emission standard, weights, EV battery. params.lang: "zh" or "ru" for the equipment names. */
+  specs(trimId, params) { return this.http.request("GET", `/api/specs/${enc(trimId)}`, { params }); }
 
   /** Up to 500 full records in one call (Business/Scale). */
   bulkVehicles(ids, params) { return this.http.request("POST", "/api/vehicle/bulk", { params, body: { ids } }); }
@@ -64,7 +71,7 @@ class ChinaClient {
   /**
    * Follows the change feed until it is drained and yields every event once:
    * { id, source, vehicleId, type: "new" | "price" | "removed" | "relisted", oldPrice, newPrice, at }.
-   * Pass { since } (right after an export) or { cursor } to start; after the loop,
+   * Pass { since } (the generatedAt of an export) or { cursor } to start; after the loop,
    * `china.lastCursor` holds the cursor to resume from next time.
    */
   async *iterateChanges(params = {}) {
@@ -78,10 +85,19 @@ class ChinaClient {
     }
   }
 
-  /** Full catalog as CSV text (Business/Scale). */
+  /** Full catalog as CSV text (Business/Scale). { lang: "ru" }: the label columns in Russian. */
   exportCsv(params) { return this.http.request("GET", "/api/catalog/export", { params, text: true }); }
 
-  /** Filter values with counts: makes, fuels, cities, sources, sorts. */
+  /**
+   * Streams the full catalog export to a file instead of holding it in memory (same
+   * params as exportCsv). Resolves to { path, bytes, generatedAt }; generatedAt is the
+   * x-generated-at header: start the change feed with { since: generatedAt }.
+   */
+  exportToFile(path, params) {
+    return this.http.download("/api/catalog/export", path, { params, generatedAtHeader: GENERATED_AT });
+  }
+
+  /** Filter values with counts: makes, fuels, cities, sources, sorts. { lang: "ru" } adds nameRu to fuels and cities. */
   enums(params) { return this.http.request("GET", "/api/enums", { params }); }
 
   /** Models of one make (id or English name) with counts. */

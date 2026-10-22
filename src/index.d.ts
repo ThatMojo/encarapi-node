@@ -25,6 +25,31 @@ export type KoreaSource = "encar" | "kbc" | "kcar" | "all" | (string & {});
 /** Response language: "en" English, "ru" Russian, "de" German display values (ids and codes unchanged). */
 export type KoreaLang = "en" | "ru" | "de";
 
+/** Result of exportToFile() and the other *ToFile() methods. */
+export interface ExportFileResult {
+  /** The path the export was written to (as passed in). */
+  path: string;
+  /** Bytes written to the file (after any transfer decompression). */
+  bytes: number;
+  /**
+   * The export's generated-at response header (Korea: X-Encarapi-Generated-At, China: x-generated-at),
+   * a few minutes before the file's data snapshot. Pass it as `since` to changes() / iterateChanges();
+   * the first page can repeat a few events, so apply them idempotently. null if the header was missing.
+   */
+  generatedAt: string | null;
+}
+
+/** Params of korea.exportCsv() / korea.exportToFile(). */
+export interface KoreaExportParams {
+  source?: KoreaSource;
+  /** "sale" (default), "lease", "rental", a comma list or "all". */
+  sell_type?: string;
+  /** "ru" / "de": the label columns in Russian / German, every other column unchanged. */
+  lang?: "ru" | "de";
+  /** true = compressed transfer (gzip or brotli); fetch decompresses it, the file holds plain CSV. */
+  compress?: Bool;
+}
+
 /** Flat English filters for /api/catalog, /api/nav and /api/catalog/leasing. Values from korea.enums() / korea.nav(). */
 export interface KoreaCatalogParams {
   source?: KoreaSource;
@@ -222,6 +247,8 @@ export class KoreaClient {
   truckEnums(): Promise<Json>;
   /** Full truck inventory as CSV text (Business/Scale). */
   trucksCsv(params?: { compress?: Bool }): Promise<string>;
+  /** Streams the truck export to a file; continue with changes({ source: "truck", since: generatedAt }). */
+  exportTrucksToFile(path: string, params?: { compress?: Bool }): Promise<ExportFileResult>;
   /** Complete, stable traversal of the truck catalog (sort=id + after). */
   iterateTrucksById(params?: KoreaTruckParams): AsyncGenerator<Json, void, unknown>;
   /** Used excavators from 굴삭기나라 (Business/Scale). */
@@ -230,6 +257,8 @@ export class KoreaClient {
   equipmentEnums(): Promise<Json>;
   /** Full equipment inventory as CSV text (Business/Scale). */
   equipmentCsv(params?: { compress?: Bool }): Promise<string>;
+  /** Streams the equipment export to a file; continue with changes({ source: "equipment", since: generatedAt }). */
+  exportEquipmentToFile(path: string, params?: { compress?: Bool }): Promise<ExportFileResult>;
   /** Complete, stable traversal of the equipment catalog (sort=id + after). */
   iterateEquipmentById(params?: KoreaEquipmentParams): AsyncGenerator<Json, void, unknown>;
   /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
@@ -247,13 +276,29 @@ export class KoreaClient {
   bulkRecords(ids: string[]): Promise<Json>;
   changes(params: KoreaChangesParams): Promise<KoreaChangesResponse>;
   iterateChanges(params: KoreaChangesParams): AsyncGenerator<KoreaChange, void, unknown>;
-  /** CSV text. */
-  /** sell_type: "sale" (default), "lease", "rental", a comma list or "all". */
-  /** lang "ru" / "de": the label columns in Russian / German, every other column unchanged. */
-  exportCsv(params?: { source?: KoreaSource; sell_type?: string; lang?: "ru" | "de" }): Promise<string>;
+  /** Full catalog as CSV text (Business/Scale). */
+  exportCsv(params?: KoreaExportParams): Promise<string>;
+  /**
+   * Streams the full catalog export to a file without holding it in memory. Then start the change
+   * feed with { since: result.generatedAt } (same source / sell_type as the export).
+   */
+  exportToFile(path: string, params?: KoreaExportParams): Promise<ExportFileResult>;
   makesCsv(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<string>;
   modelsCsv(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<string>;
   badgesCsv(params?: { source?: KoreaSource; lang?: "ru" | "de" }): Promise<string>;
+}
+
+/**
+ * China response language: "en" English (default), "zh" the original Chinese values, "ru" Russian values
+ * for the fixed fields (fuel, transmission, drivetrain, colours, seller type, condition, vehicle class),
+ * city names and equipment names. Make, model and trim names stay Latin with "ru".
+ */
+export type ChinaLang = "en" | "zh" | "ru";
+
+/** Params of china.exportCsv() / china.exportToFile(). */
+export interface ChinaExportParams {
+  /** "ru": the label columns (city, fuel, transmission, drivetrain, color, seller_city, condition, vehicle_class) in Russian, every other column unchanged. */
+  lang?: "ru";
 }
 
 export interface ChinaCatalogParams {
@@ -281,8 +326,8 @@ export interface ChinaCatalogParams {
   sort?: "newest" | "price_asc" | "price_desc" | "mileage_asc" | "year_desc";
   page?: number;
   limit?: number;
-  /** "zh" = original Chinese values. */
-  lang?: "en" | "zh";
+  /** "zh" = original Chinese values, "ru" = Russian values (see ChinaLang). */
+  lang?: ChinaLang;
 }
 
 export interface ChinaCatalogResponse {
@@ -325,19 +370,27 @@ export class ChinaClient {
   catalog(params?: ChinaCatalogParams): Promise<ChinaCatalogResponse>;
   /** All pages up to the API's 10,000-result depth limit. */
   iterateCatalog(params?: ChinaCatalogParams): AsyncGenerator<Json, void, unknown>;
-  vehicle(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
+  vehicle(id: string, params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
   /** Full record by Che168/Dongchedi listing link (desktop, mobile or app). */
-  vehicleByUrl(url: string, params?: { lang?: "en" | "zh" }): Promise<Json>;
-  inspection(id: string, params?: { source?: "dongchedi" | "che168"; lang?: "en" | "zh" }): Promise<Json>;
-  /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). */
-  specs(trimId: string | number): Promise<Json>;
-  bulkVehicles(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
+  vehicleByUrl(url: string, params?: { lang?: ChinaLang }): Promise<Json>;
+  /** lang "zh": original Chinese report; "ru" is accepted, the report stays English. */
+  inspection(id: string, params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
+  /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). lang "zh" / "ru" for the equipment names. */
+  specs(trimId: string | number, params?: { lang?: ChinaLang }): Promise<Json>;
+  bulkVehicles(ids: string[], params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
   /** Alias of bulkVehicles. */
-  bulk(ids: string[], params?: { lang?: "en" | "zh" }): Promise<Json>;
+  bulk(ids: string[], params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
   changes(params: ChinaChangesParams): Promise<ChinaChangesResponse>;
   iterateChanges(params: ChinaChangesParams): AsyncGenerator<ChinaChange, void, unknown>;
-  exportCsv(params?: Json): Promise<string>;
-  enums(params?: Json): Promise<Json>;
+  /** Full catalog as CSV text (Business/Scale). */
+  exportCsv(params?: ChinaExportParams & Json): Promise<string>;
+  /**
+   * Streams the full catalog export to a file without holding it in memory. Then start the change
+   * feed with { since: result.generatedAt }.
+   */
+  exportToFile(path: string, params?: ChinaExportParams): Promise<ExportFileResult>;
+  /** lang "ru" adds nameRu to fuels and cities (also valid filter input). */
+  enums(params?: { lang?: "ru" } & Json): Promise<Json>;
   models(make: string | number): Promise<Json>;
 }
 

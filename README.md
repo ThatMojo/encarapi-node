@@ -65,27 +65,55 @@ const de = await client.korea.catalog({ model_group: "C-Klasse", fuel: "Benzin",
 const enumsDe = await client.korea.enums({ lang: "de" }); // nameDe per value
 ```
 
-## Keep a local copy in sync (Business / Scale)
+China calls take `lang: "zh"` (original Chinese values) or `lang: "ru"`: Russian values for the fixed fields
+(fuel, transmission, drivetrain, colours, seller type, condition, vehicle class), city names and equipment
+names on `catalog`, `vehicle`, `vehicleByUrl`, `bulkVehicles` and `specs`. Make, model and trim names stay
+Latin. `enums({ lang: "ru" })` adds `nameRu` to fuels and cities, `exportCsv({ lang: "ru" })` /
+`exportToFile(path, { lang: "ru" })` return the label columns in Russian.
 
 ```js
-// 1) Baseline: full catalog as CSV
-const csv = await client.korea.exportCsv();
+const cn = await client.china.catalog({ make: "BYD", lang: "ru", limit: 10 });
+```
 
-// 2) Then follow the change feed; every event arrives exactly once
-for await (const change of client.korea.iterateChanges({ cursor: savedCursor ?? 0 })) {
-  // change.type: "added" | "updated" | "reappeared" | "removed"
+## Keep a local copy in sync (Business / Scale)
+
+Three steps: export to a file, start the change feed at the export's timestamp, then keep the cursor.
+
+```js
+// 1) Baseline: stream the full catalog to a file (not held in memory)
+const { path, bytes, generatedAt } = await client.korea.exportToFile("catalog.csv");
+importCsv(path); // your import: upsert by listing_id
+
+// 2) First sync: start the change feed at the export's generatedAt
+//    (X-Encarapi-Generated-At, not the time of your download)
+for await (const change of client.korea.iterateChanges({ since: generatedAt })) {
+  // change.type: "added" | "updated" | "reappeared" | "removed"; apply idempotently
 }
+saveCursor(client.korea.lastCursor);
+
+// 3) Every later sync: continue from the saved cursor
+for await (const change of client.korea.iterateChanges({ cursor: loadCursor() })) { /* ... */ }
 saveCursor(client.korea.lastCursor);
 ```
 
-The China API works the same way (`client.china`); its events are
+`generatedAt` lies a few minutes before the file's data snapshot, so the first feed page can repeat a few
+events that are already in the file: apply them as upserts. Use the same `source` / `sell_type` for the
+export and the feed (e.g. `exportToFile("kbc.csv", { source: "kbc" })`, then
+`iterateChanges({ source: "kbc", since: generatedAt })`). `exportCsv()` still returns the CSV as one string,
+but without the timestamp; for large catalogs use `exportToFile()`. Trucks and excavators work the same way
+with `exportTrucksToFile()` / `exportEquipmentToFile()` and `source: "truck"` / `"equipment"` on the feed.
+The file is written to `<path>.part` first and renamed when complete, so an aborted download never leaves
+a truncated file under the final name.
+
+The China API works the same way (`client.china`, header `x-generated-at`); its events are
 `{ id, source, vehicleId, type: "new" | "price" | "removed" | "relisted", oldPrice, newPrice, at }`:
 
 ```js
-for await (const change of client.china.iterateChanges({ cursor: savedCursor ?? 0 })) {
+const { generatedAt } = await client.china.exportToFile("china-catalog.csv");
+for await (const change of client.china.iterateChanges({ since: generatedAt })) {
   // change.type: "new" | "price" | "removed" | "relisted"
 }
-saveCursor(client.china.lastCursor);
+saveCursor(client.china.lastCursor); // later: iterateChanges({ cursor: loadCursor() })
 ```
 
 ## Korea API (`client.korea`)
@@ -102,10 +130,12 @@ saveCursor(client.china.lastCursor);
 | `truck(id)` | `GET /api/catalog/trucks/{id}` | One truck with detail, inspection report, cargo box, VIN and plate |
 | `truckEnums()` | `GET /api/catalog/trucks/enums` | Truck filter values with counts |
 | `trucksCsv()` | `GET /api/catalog/trucks/export` | Full truck inventory CSV (Business/Scale) |
+| `exportTrucksToFile(path, params)` | `GET /api/catalog/trucks/export` | Same, streamed to a file: `{ path, bytes, generatedAt }` |
 | `iterateTrucksById(params)` | `GET /api/catalog/trucks?sort=id` | Complete, stable traversal of the truck catalog |
 | `equipment(params)` | `GET /api/catalog/equipment` | Used excavators (Business/Scale) |
 | `equipmentEnums()` | `GET /api/catalog/equipment/enums` | Equipment filter values with counts |
 | `equipmentCsv()` | `GET /api/catalog/equipment/export` | Full equipment inventory CSV (Business/Scale) |
+| `exportEquipmentToFile(path, params)` | `GET /api/catalog/equipment/export` | Same, streamed to a file: `{ path, bytes, generatedAt }` |
 | `iterateEquipmentById(params)` | `GET /api/catalog/equipment?sort=id` | Complete, stable traversal of the equipment catalog |
 | `nav(params)` | `GET /api/nav` | Filter facets with counts |
 | `enums(params)` | `GET /api/enums` | Valid values for the flat filters |
@@ -119,22 +149,24 @@ saveCursor(client.china.lastCursor);
 | `inspectionVersions(id)` / `recordVersions(id)` | `GET /api/.../versions` | Report history (Business/Scale) |
 | `changes(params)` / `iterateChanges(params)` | `GET /api/catalog/changes` | Incremental sync (Business/Scale) |
 | `exportCsv(params)` | `GET /api/catalog/export` | Full catalog CSV (Business/Scale); `{ sell_type: "lease,rental" }` for lease/rental |
+| `exportToFile(path, params)` | `GET /api/catalog/export` | Same export streamed to a file: `{ path, bytes, generatedAt }` (start of the change feed) |
 | `makesCsv()` / `modelsCsv()` / `badgesCsv()` | `GET /api/taxonomy/*.csv` | Reference data |
 
 ## China API (`client.china`)
 
 | Method | Endpoint | Notes |
 |---|---|---|
-| `catalog(params)` | `GET /api/catalog` | `make`, `price_min/max` (CNY), `power_min/max` (hp), `export_ready`, `sort`, ... |
+| `catalog(params)` | `GET /api/catalog` | `make`, `price_min/max` (CNY), `power_min/max` (hp), `export_ready`, `sort`, `lang` (`zh`, `ru`), ... |
 | `iterateCatalog(params)` | `GET /api/catalog` | Async iterator over all pages (up to the 10,000-result depth limit) |
 | `vehicle(id)` | `GET /api/vehicle/:id` | Price history, photos, seller, export status |
 | `vehicleByUrl(url)` | `GET /api/vehicle/by-url` | Same record by Che168/Dongchedi listing link (desktop, mobile or app) |
 | `inspection(id)` | `GET /api/inspection/:id` | Accident, flood and fire checks, EV battery data |
-| `specs(trimId)` | `GET /api/specs/:trimId` | Autohome trim sheet of a Che168 car: cc, kW, hp, torque, emission standard, weights, EV battery |
+| `specs(trimId, params)` | `GET /api/specs/:trimId` | Autohome trim sheet of a Che168 car: cc, kW, hp, torque, emission standard, weights, EV battery |
 | `bulkVehicles(ids)` | `POST /api/vehicle/bulk` | Up to 500 ids |
 | `changes(params)` / `iterateChanges(params)` | `GET /api/catalog/changes` | Change feed (Business/Scale) |
-| `exportCsv()` | `GET /api/catalog/export` | Full catalog CSV |
-| `enums()` / `models(make)` | `GET /api/enums`, `/api/models` | Filter values, models per make |
+| `exportCsv(params)` | `GET /api/catalog/export` | Full catalog CSV; `{ lang: "ru" }` for Russian label columns |
+| `exportToFile(path, params)` | `GET /api/catalog/export` | Same export streamed to a file: `{ path, bytes, generatedAt }` (start of the change feed) |
+| `enums(params)` / `models(make)` | `GET /api/enums`, `/api/models` | Filter values (`{ lang: "ru" }` adds `nameRu`), models per make |
 
 China only? `const { ChinaCarAPI } = require("encarapi")` (also available as the
 [`chinacarapi`](https://www.npmjs.com/package/chinacarapi) package).

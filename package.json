@@ -1,6 +1,6 @@
 {
   "name": "encarapi",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Official Node.js client for EnCarAPI: Korean used car data (Encar, KB Chachacha, K Car) and Chinese used car data (Dongchedi, Che168) in one REST API.",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -15,7 +15,7 @@
     "src"
   ],
   "scripts": {
-    "test": "node test/smoke.js",
+    "test": "node test/smoke.js && node --test test/export-file.test.js",
     "test:live": "node test/smoke.js --live"
   },
   "keywords": [
