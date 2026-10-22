@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.5.1
+
+- Types and docs only, no runtime change: `KoreaChange` now declares `Accident`, `SimpleRepair` and
+  `InspectionAvailable` (Encar only; `null` = not known yet). They carry the accident status from Encar's
+  performance inspection; `exportCsv()` has the same data in the new last columns `accident`,
+  `simple_repair` and `inspection_available` (empty = not known, `inspection_available=false` = no
+  inspection report at our last detail fetch).
+- API release 22 October 2026: when a listing's detail is collected for the first time, the change feed
+  sends one extra `updated` event with `inspection` in `changedFields` (about one per new listing), so a
+  local copy learns the accident status. A change to the simple-repair flag alone now arrives with
+  `accident`. Existing local copies: pull `exportCsv()` once to fill the new columns for listings that
+  get no event.
+
 ## 1.5.0
 
 - China: `china.vehicleByUrl(url)` (`GET /api/vehicle/by-url`) returns the full record for a Che168 or

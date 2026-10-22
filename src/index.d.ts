@@ -179,6 +179,19 @@ export interface KoreaChange extends Json {
   IsDuplicate?: boolean;
   /** Only present together with IsDuplicate: the listing id of the original (Encar id for KB Chachacha), numeric string. */
   DuplicateOf?: string;
+  /**
+   * Encar only: accident damage according to Encar's performance inspection. null = not known
+   * (detail not collected yet, or no inspection report - see InspectionAvailable).
+   */
+  Accident?: boolean | null;
+  /** Encar only: only simple repairs (e.g. panel or paint work) according to the inspection. null = not known. */
+  SimpleRepair?: boolean | null;
+  /**
+   * Encar only: null = detail not collected yet; false = no inspection report at our last detail fetch
+   * (can still turn true later); true = Accident and SimpleRepair are filled. The first collected detail
+   * arrives as an "updated" event with "inspection" in changedFields.
+   */
+  InspectionAvailable?: boolean | null;
 }
 
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */
