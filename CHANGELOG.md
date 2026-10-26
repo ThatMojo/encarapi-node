@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.1
+
+- Types and docs only, no runtime change: `KoreaChange` now declares `InsuranceClaims` (KB Chachacha only;
+  `null` = not known yet): the number of insurance accident records KB Chachacha shows for the car. The same
+  number is on KB Chachacha items of `korea.catalog({ source })`, in `korea.vehicle("kbc:...")` /
+  `bulkVehicles()`, and in the new last column `insurance_claims` of `exportCsv({ source })` (empty for
+  Encar and K Car rows).
+- API release 26 October 2026: a change of the count arrives as an `updated` event with `accident` in
+  `changedFields`. Listings that already existed got the count without an event - pull
+  `exportCsv({ source: "kbc" })` once to fill it in a local copy.
+
 ## 1.7.0
 
 - New: `korea.exportToFile(path, params)` and `china.exportToFile(path, params)` stream the full catalog

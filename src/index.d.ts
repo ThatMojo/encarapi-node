@@ -219,6 +219,12 @@ export interface KoreaChange extends Json {
    * arrives as an "updated" event with "inspection" in changedFields.
    */
   InspectionAvailable?: boolean | null;
+  /**
+   * KB Chachacha only: number of insurance accident records KB Chachacha shows for the car ("보험이력 N건"
+   * on the listing page). null = not known yet. A change arrives as an "updated" event with "accident" in
+   * changedFields; listings that already existed on 26 October 2026 got the count without an event.
+   */
+  InsuranceClaims?: number | null;
 }
 
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */
