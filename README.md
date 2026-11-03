@@ -5,7 +5,7 @@ Official **Node.js / TypeScript client** for [EnCarAPI](https://encarapi.com/?ut
 
 - **Korea:** Encar.com, KB Chachacha (`source: "kbc"`) and K Car (`source: "kcar"`), with
   photos, specs, options, inspection reports, accident and ownership records, condition
-  reports, price history, a change feed and full catalog export.
+  reports, Encar diagnoses, price history, a change feed and full catalog export.
 - **China:** Dongchedi and Che168 in English via [ChinaCarAPI](https://chinacarapi.com/?utm_source=readme&utm_medium=encarapi-node)
   (separate key or the China add-on for EnCarAPI keys).
 
@@ -75,6 +75,26 @@ Latin. `enums({ lang: "ru" })` adds `nameRu` to fuels and cities, `exportCsv({ l
 const cn = await client.china.catalog({ make: "BYD", lang: "ru", limit: 10 });
 ```
 
+### Encar diagnosis
+
+Encar's own body diagnosis (엔카진단, Encar listings only, about three in four active ones): the 8 outer
+panels with `resultCode` `NORMAL` or `REPLACEMENT`, plus `CHECKER_COMMENT` (the inspector's verdict, which
+also states the frame result) and `OUTER_PANEL_COMMENT` (Korean free text, `resultCode` `null`).
+
+```js
+const diag = await client.korea.diagnosis("41192872");
+const replaced = diag.items.filter((i) => i.resultCode === "REPLACEMENT").map((i) => i.name);
+// e.g. ["HOOD", "FRONT_FENDER_RIGHT"]
+
+// The same block is in every Encar vehicle detail (null = Encar has no diagnosis for the car)
+const { diagnosisReport } = await client.korea.vehicle("41192872");
+```
+
+Without a diagnosis, `diagnosis()` throws `EnCarAPIError` with status 404; its JSON `body` has
+`diagnosisAvailable: false` (Encar has no diagnosis for the listing) or `detailPending: true` (the listing's
+detail is not collected yet, retry later). `bulkDiagnoses(ids)` takes up to 500 ids and lists such ids under
+`noDiagnosis` / `pending`. A new or changed diagnosis does not create an event in the change feed.
+
 ## Keep a local copy in sync (Business / Scale)
 
 Three steps: export to a file, start the change feed at the export's timestamp, then keep the cursor.
@@ -143,9 +163,10 @@ saveCursor(client.china.lastCursor); // later: iterateChanges({ cursor: loadCurs
 | `vehicle(id)` | `GET /api/vehicle/:id` | Ids: Encar id, `kbc:<id>`, `kcar:<id>` |
 | `inspection(id)` | `GET /api/inspection/:id` | Official inspection report |
 | `record(id)` | `GET /api/record/:id` | Accident & ownership record |
+| `diagnosis(id)` | `GET /api/diagnosis/:id` | Encar diagnosis (엔카진단): outer panels replaced or not, inspector verdict; Encar ids only |
 | `refresh(id)` | `POST /api/vehicle/:id/refresh` | On-demand refresh (daily quota) |
 | `priceCheck(id)` | `GET /api/price-check/:id` | Market estimate (beta, Scale) |
-| `bulkVehicles(ids)` / `bulkInspections(ids)` / `bulkRecords(ids)` | `POST /api/.../bulk` | Up to 500 ids (Business/Scale) |
+| `bulkVehicles(ids)` / `bulkInspections(ids)` / `bulkRecords(ids)` / `bulkDiagnoses(ids)` | `POST /api/.../bulk` | Up to 500 ids (Business/Scale) |
 | `inspectionVersions(id)` / `recordVersions(id)` | `GET /api/.../versions` | Report history (Business/Scale) |
 | `changes(params)` / `iterateChanges(params)` | `GET /api/catalog/changes` | Incremental sync (Business/Scale) |
 | `exportCsv(params)` | `GET /api/catalog/export` | Full catalog CSV (Business/Scale); `{ sell_type: "lease,rental" }` for lease/rental |

@@ -48,6 +48,21 @@ function fakeFetch(status, payload) {
   assert.strictEqual(c.url.searchParams.get("lang"), "de");
   assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["1"] });
 
+  // Encar diagnosis: GET per id (ids encoded like inspection()), POST bulk with { ids }
+  await client.korea.diagnosis("41192872");
+  c = calls.pop();
+  assert.strictEqual(c.init.method, "GET");
+  assert.strictEqual(c.url.origin + c.url.pathname, "https://api.encarapi.com/api/diagnosis/41192872");
+  await client.korea.diagnosis("kbc:123");
+  c = calls.pop();
+  assert.strictEqual(c.url.pathname, "/api/diagnosis/kbc%3A123");
+  await client.korea.bulkDiagnoses(["41192872", "kbc:123"]);
+  c = calls.pop();
+  assert.strictEqual(c.init.method, "POST");
+  assert.strictEqual(c.url.pathname, "/api/diagnosis/bulk");
+  assert.strictEqual(c.init.headers["Content-Type"], "application/json");
+  assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["41192872", "kbc:123"] });
+
   await client.china.catalog({ make: "BYD" });
   c = calls.pop();
   assert.strictEqual(c.url.origin, "https://api.chinacarapi.com");
@@ -158,6 +173,23 @@ function fakeFetch(status, payload) {
   const denied = new EnCarAPI("kr_key", { fetch: fakeFetch(403, { error: "Upgrade to Business" }) });
   await assert.rejects(denied.korea.changes({ cursor: 0 }), (e) => e.status === 403 && /Upgrade to Business/.test(e.body));
 
+  // Diagnosis 404: status + JSON body tell "no diagnosis" apart from "not collected yet"
+  const noDiag = new EnCarAPI("kr_key", { fetch: fakeFetch(404, { error: "This listing has no Encar diagnosis.", diagnosisAvailable: false, listingStatus: "active", hint: "..." }) });
+  await assert.rejects(noDiag.korea.diagnosis("42967176"), (e) => e instanceof EnCarAPIError && e.status === 404 && JSON.parse(e.body).diagnosisAvailable === false);
+  const pendingDiag = new EnCarAPI("kr_key", { fetch: fakeFetch(404, { error: "Encar diagnosis not yet available.", detailPending: true, listingStatus: "active", hint: "..." }) });
+  await assert.rejects(pendingDiag.korea.diagnosis("43000000"), (e) => e.status === 404 && JSON.parse(e.body).detailPending === true);
+
+  // Diagnosis payloads are passed through unchanged
+  const diagPayload = {
+    listingId: "41192872", vehicleId: 41192872, diagnosisDate: "2026-10-24T00:00:00", realDiagnosisDate: "2026-10-24T00:00:00",
+    items: [
+      { code: "006026", name: "HOOD", result: "교환", resultCode: "REPLACEMENT" },
+      { code: "006039", name: "CHECKER_COMMENT", result: "...", resultCode: null },
+    ],
+  };
+  const diagClient = new EnCarAPI("kr_key", { fetch: fakeFetch(200, diagPayload) });
+  assert.deepStrictEqual(await diagClient.korea.diagnosis("41192872"), diagPayload);
+
   console.log("encarapi offline tests: OK");
 
   if (process.argv.includes("--live")) {
@@ -167,6 +199,10 @@ function fakeFetch(status, payload) {
     if (saved.k) {
       const kr = await live.korea.catalog({ limit: 1, count: true, lang: "en" });
       console.log("live korea count:", kr.Count);
+      const diag = await live.korea.diagnosis("41192872");
+      assert.ok(Array.isArray(diag.items) && diag.items.length > 0, "diagnosis has items");
+      const replaced = diag.items.filter((i) => i.resultCode === "REPLACEMENT").map((i) => i.name);
+      console.log("live korea diagnosis 41192872:", diag.items.length, "items, replaced:", replaced.join(", ") || "none");
     }
     if (saved.c || saved.k) {
       const cn = await live.china.catalog({ limit: 1 });

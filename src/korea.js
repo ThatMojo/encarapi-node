@@ -143,6 +143,13 @@ class KoreaClient {
   /** Insurance accident & ownership record. */
   record(id) { return this.http.request("GET", `/api/record/${enc(id)}`); }
 
+  /**
+   * Encar diagnosis (엔카진단, Encar ids only): the 8 outer panels (NORMAL / REPLACEMENT) plus
+   * CHECKER_COMMENT and OUTER_PANEL_COMMENT. 404 when there is none: the body has
+   * diagnosisAvailable: false (no diagnosis) or detailPending: true (not collected yet).
+   */
+  diagnosis(id) { return this.http.request("GET", `/api/diagnosis/${enc(id)}`); }
+
   /** Ask for a fresh copy of one listing (daily quota per plan). */
   refresh(id) { return this.http.request("POST", `/api/vehicle/${enc(id)}/refresh`); }
 
@@ -165,6 +172,9 @@ class KoreaClient {
 
   /** Up to 500 insurance records in one call. */
   bulkRecords(ids) { return this.http.request("POST", "/api/record/bulk", { body: { ids } }); }
+
+  /** Up to 500 Encar diagnoses in one call (noDiagnosis = listings without one, encarOnly = kbc:/kcar: ids). */
+  bulkDiagnoses(ids) { return this.http.request("POST", "/api/diagnosis/bulk", { body: { ids } }); }
 
   /** Incremental change feed: { cursor } from the previous call, or { since } = generatedAt of an export (exportToFile). */
   changes(params) { return this.http.request("GET", "/api/catalog/changes", { params }); }

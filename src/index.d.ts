@@ -227,6 +227,99 @@ export interface KoreaChange extends Json {
   InsuranceClaims?: number | null;
 }
 
+/**
+ * Name of an Encar diagnosis item: the 8 outer panels and the two inspector comments, as Encar names
+ * them. Treat unknown names as additional items.
+ */
+export type DiagnosisItemName =
+  | "FRONT_DOOR_LEFT"
+  | "FRONT_DOOR_RIGHT"
+  | "BACK_DOOR_LEFT"
+  | "BACK_DOOR_RIGHT"
+  | "FRONT_FENDER_LEFT"
+  | "FRONT_FENDER_RIGHT"
+  | "HOOD"
+  | "TRUNK_LID"
+  | "CHECKER_COMMENT"
+  | "OUTER_PANEL_COMMENT"
+  | (string & {});
+
+/** One item of an Encar diagnosis: an outer panel or one of the two inspector comments. */
+export interface DiagnosisItem {
+  /** Encar item code, e.g. "006026". */
+  code: string | null;
+  /** e.g. "HOOD" or "CHECKER_COMMENT" (see DiagnosisItemName). */
+  name: DiagnosisItemName | null;
+  /** Panels: the Korean label (정상 normal, 교환 replaced). Comments: Korean free text. */
+  result: string | null;
+  /** Panels: "NORMAL" or "REPLACEMENT". Comments: null. */
+  resultCode: "NORMAL" | "REPLACEMENT" | (string & {}) | null;
+}
+
+/**
+ * Encar's own body diagnosis (엔카진단), done at an Encar center; about three in four active Encar listings
+ * have one. Separate from the official inspection report (inspection()) and the Encar condition report
+ * (conditionReport in vehicle()). Encar does not diagnose cars with a damaged frame: CHECKER_COMMENT
+ * states the frame result. Values are not translated with `lang`. This is the `diagnosisReport` block of
+ * an Encar vehicle detail.
+ */
+export interface DiagnosisReport {
+  /** Diagnosis date, Korean time (KST) without an offset, e.g. "2026-07-22T00:00:00". */
+  diagnosisDate: string | null;
+  /** Date and time the check was done, Korean time (KST) without an offset. */
+  realDiagnosisDate: string | null;
+  /** The 8 outer panels plus CHECKER_COMMENT (the inspector's verdict) and OUTER_PANEL_COMMENT. */
+  items: DiagnosisItem[];
+}
+
+/** Result of korea.diagnosis(): the diagnosis plus the ids it belongs to. */
+export interface DiagnosisResponse extends DiagnosisReport {
+  /** The Encar listing the request resolved to. */
+  listingId: string;
+  /** Encar vehicle id the diagnosis belongs to. */
+  vehicleId: number;
+}
+
+/** Result of korea.bulkDiagnoses(). */
+export interface DiagnosisBulkResponse {
+  /** Id (as sent) -> diagnosis. */
+  results: Record<string, DiagnosisResponse>;
+  /** Known listings whose detail data is not collected yet, so it is not known yet whether they have a diagnosis. */
+  pending: string[];
+  /** Unknown ids. */
+  notFound: string[];
+  /** Listings we hold that have no Encar diagnosis. */
+  noDiagnosis: string[];
+  counts: {
+    requested: number;
+    found: number;
+    pending: number;
+    notFound: number;
+    noDiagnosis: number;
+    encarOnly?: number;
+    [key: string]: number | undefined;
+  };
+  /** Prefixed ids (kbc:/kcar:): the diagnosis exists for Encar listings only. */
+  encarOnly?: string[];
+  encarOnlyHint?: string;
+  /** Trials: removed listings beyond the daily archive preview. */
+  archived?: string[];
+  [key: string]: any;
+}
+
+/**
+ * Detail payload of korea.vehicle(). Only the blocks below are typed; every other field is passed through
+ * as the API returns it.
+ */
+export interface KoreaVehicleDetail extends Json {
+  /**
+   * Encar payloads only (not on kbc:/kcar: payloads): Encar's own body diagnosis, null when Encar has no
+   * diagnosis for the car. Same content as korea.diagnosis() without listingId / vehicleId. Also in every
+   * Encar payload of bulkVehicles().
+   */
+  diagnosisReport?: DiagnosisReport | null;
+}
+
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */
 export class KoreaClient {
   constructor(apiKey: string, options?: Pick<ClientOptions, "baseUrl" | "fetch">);
@@ -267,10 +360,18 @@ export class KoreaClient {
   exportEquipmentToFile(path: string, params?: { compress?: Bool }): Promise<ExportFileResult>;
   /** Complete, stable traversal of the equipment catalog (sort=id + after). */
   iterateEquipmentById(params?: KoreaEquipmentParams): AsyncGenerator<Json, void, unknown>;
-  /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". */
-  vehicle(id: string, params?: { lang?: KoreaLang }): Promise<Json>;
+  /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". Encar payloads end with diagnosisReport. */
+  vehicle(id: string, params?: { lang?: KoreaLang }): Promise<KoreaVehicleDetail>;
   inspection(id: string): Promise<Json>;
   record(id: string): Promise<Json>;
+  /**
+   * Encar diagnosis (엔카진단), Encar ids only. Without one the call throws EnCarAPIError with status 404 and
+   * a JSON body: `diagnosisAvailable: false` = Encar has no diagnosis for the listing, `detailPending: true`
+   * = the listing's detail is not collected yet (retry later), `Vehicle not found.` = unknown id; prefixed
+   * kbc:/kcar: ids also answer 404 with a hint. Removed listings follow the archive rules of inspection().
+   * On a trial it counts as a detail lookup; not on the free dev plan (403).
+   */
+  diagnosis(id: string): Promise<DiagnosisResponse>;
   refresh(id: string): Promise<Json>;
   /** Beta, Scale plan. */
   priceCheck(id: string): Promise<Json>;
@@ -280,6 +381,11 @@ export class KoreaClient {
   bulkVehicles(ids: string[], params?: { lang?: KoreaLang }): Promise<Json>;
   bulkInspections(ids: string[]): Promise<Json>;
   bulkRecords(ids: string[]): Promise<Json>;
+  /**
+   * Up to 500 Encar diagnoses in one call (Business/Scale; trials 1,000 ids per day). A new or changed
+   * diagnosis does not create an event in changes(): re-check with this call on your own schedule.
+   */
+  bulkDiagnoses(ids: string[]): Promise<DiagnosisBulkResponse>;
   changes(params: KoreaChangesParams): Promise<KoreaChangesResponse>;
   iterateChanges(params: KoreaChangesParams): AsyncGenerator<KoreaChange, void, unknown>;
   /** Full catalog as CSV text (Business/Scale). */
@@ -410,7 +516,7 @@ export class EnCarAPI {
   /** Shortcut for korea.nav (0.x compatible). */
   nav(params?: KoreaCatalogParams): Promise<Json>;
   /** Shortcut for korea.vehicle (0.x compatible). */
-  vehicle(id: string, params?: { lang?: KoreaLang }): Promise<Json>;
+  vehicle(id: string, params?: { lang?: KoreaLang }): Promise<KoreaVehicleDetail>;
 }
 
 /** China-only client (also published as the `chinacarapi` package). */
