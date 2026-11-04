@@ -225,6 +225,19 @@ export interface KoreaChange extends Json {
    * changedFields; listings that already existed on 26 October 2026 got the count without an event.
    */
   InsuranceClaims?: number | null;
+  /**
+   * KB Chachacha only: link to the inspection sheet (성능·상태점검기록부) on the inspection company's website,
+   * as linked from the listing page. A third-party page in Korean, not checked or stored by us. null when
+   * InspectionReportType is not "link".
+   */
+  InspectionReportUrl?: string | null;
+  /**
+   * KB Chachacha only: "link" = report at InspectionReportUrl, "scan" = KB Chachacha only shows scanned images
+   * on the listing page, null = not known. Collected once, when the listing's detail page is first read
+   * (usually 1-2 days after it appears); that arrives as an "updated" event with "inspection" in changedFields.
+   * Values that existed on 4 November 2026 came without an event - pull the export (source=kbc) once.
+   */
+  InspectionReportType?: "link" | "scan" | null;
 }
 
 /**
@@ -318,6 +331,10 @@ export interface KoreaVehicleDetail extends Json {
    * Encar payload of bulkVehicles().
    */
   diagnosisReport?: DiagnosisReport | null;
+  /** kbc: payloads only: inspection sheet link, same values as KoreaChange.InspectionReportUrl. */
+  InspectionReportUrl?: string | null;
+  /** kbc: payloads only: "link" | "scan" | null, same values as KoreaChange.InspectionReportType. */
+  InspectionReportType?: "link" | "scan" | null;
 }
 
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */

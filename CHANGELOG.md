@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.8.1
+
+- Types: `KoreaChange` and `KoreaVehicleDetail` gain `InspectionReportUrl` (`string | null`) and
+  `InspectionReportType` (`"link" | "scan" | null`) - the inspection sheet KB Chachacha shows for the car
+  (API release 4 November 2026). `link` = report on the inspection company's website, `scan` = only scanned
+  images on the listing page, `null` = not known. On `kbc:` payloads of `vehicle()` / `bulkVehicles()` and on
+  KB Chachacha items of `changes()`; not on `catalog()` items. Collected once, when the listing's detail page is
+  first read (usually 1-2 days after it appears), which arrives as `updated` with `inspection` in
+  `changedFields`; values that existed on 4 November 2026 came without events - pull the export
+  (`source: "kbc"`) once. The `?source=` export ends with `inspection_report_url` and `inspection_report_type`.
+  No code change, types only.
+
 ## 1.8.0
 
 - New: `korea.diagnosis(id)` (`GET /api/diagnosis/{id}`) returns Encar's own body diagnosis (엔카진단) of an
