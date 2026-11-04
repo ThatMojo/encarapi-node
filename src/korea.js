@@ -150,6 +150,14 @@ class KoreaClient {
    */
   diagnosis(id) { return this.http.request("GET", `/api/diagnosis/${enc(id)}`); }
 
+  /**
+   * Encar vehicle history (차량이력, Encar ids only): the timeline of inspections, repairs, owner
+   * changes, insurance claims and recalls, with odometer readings, ownership periods and flags.
+   * 404 when there is none: the body has historyAvailable: false (no public history) or
+   * historyPending: true (not collected yet).
+   */
+  history(id) { return this.http.request("GET", `/api/history/${enc(id)}`); }
+
   /** Ask for a fresh copy of one listing (daily quota per plan). */
   refresh(id) { return this.http.request("POST", `/api/vehicle/${enc(id)}/refresh`); }
 

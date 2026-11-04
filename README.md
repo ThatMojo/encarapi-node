@@ -95,6 +95,29 @@ Without a diagnosis, `diagnosis()` throws `EnCarAPIError` with status 404; its J
 detail is not collected yet, retry later). `bulkDiagnoses(ids)` takes up to 500 ids and lists such ids under
 `noDiagnosis` / `pending`. A new or changed diagnosis does not create an event in the change feed.
 
+### Vehicle history
+
+Encar's vehicle history (차량이력, Encar listings only, about 8 in 10 of them): the timeline of inspections,
+repairs, owner changes, insurance claims and recalls, collected from the Ministry of Land, Infrastructure and
+Transport and the Korea Insurance Development Institute. Keys and enums are English; Korean source text stays
+in the `*Ko` fields and is not translated with `lang`.
+
+```js
+const hist = await client.korea.history("41483842");
+console.log(hist.summaryKo, hist.eventCount, "events");
+
+// Odometer over time (oldest first) - a reading lower than an earlier one is worth a closer look
+const mileage = hist.mileageReadings.map((r) => `${r.date}: ${r.mileageKm} km`);
+
+// All insurance claims on the timeline
+const claims = hist.events.filter((e) => e.type === "insurance_claim");
+```
+
+Without a history, `history()` throws `EnCarAPIError` with status 404; its JSON `body` has
+`historyAvailable: false` (Encar shows no public history for this listing) or `historyPending: true` (Encar
+has one but we have not collected it yet, retry later). Encar ids only; prefixed `kbc:` / `kcar:` ids answer
+404 with a hint. A new or changed history does not create an event in the change feed.
+
 ## Keep a local copy in sync (Business / Scale)
 
 Three steps: export to a file, start the change feed at the export's timestamp, then keep the cursor.
@@ -164,6 +187,7 @@ saveCursor(client.china.lastCursor); // later: iterateChanges({ cursor: loadCurs
 | `inspection(id)` | `GET /api/inspection/:id` | Official inspection report |
 | `record(id)` | `GET /api/record/:id` | Accident & ownership record |
 | `diagnosis(id)` | `GET /api/diagnosis/:id` | Encar diagnosis (엔카진단): outer panels replaced or not, inspector verdict; Encar ids only |
+| `history(id)` | `GET /api/history/:id` | Encar vehicle history (차량이력): inspections, repairs, owner changes, insurance claims, recalls; Encar ids only |
 | `refresh(id)` | `POST /api/vehicle/:id/refresh` | On-demand refresh (daily quota) |
 | `priceCheck(id)` | `GET /api/price-check/:id` | Market estimate (beta, Scale) |
 | `bulkVehicles(ids)` / `bulkInspections(ids)` / `bulkRecords(ids)` / `bulkDiagnoses(ids)` | `POST /api/.../bulk` | Up to 500 ids (Business/Scale) |

@@ -63,6 +63,15 @@ function fakeFetch(status, payload) {
   assert.strictEqual(c.init.headers["Content-Type"], "application/json");
   assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["41192872", "kbc:123"] });
 
+  // Encar vehicle history: GET per id (ids encoded like inspection()), no bulk endpoint
+  await client.korea.history("41483842");
+  c = calls.pop();
+  assert.strictEqual(c.init.method, "GET");
+  assert.strictEqual(c.url.origin + c.url.pathname, "https://api.encarapi.com/api/history/41483842");
+  await client.korea.history("kbc:123");
+  c = calls.pop();
+  assert.strictEqual(c.url.pathname, "/api/history/kbc%3A123");
+
   await client.china.catalog({ make: "BYD" });
   c = calls.pop();
   assert.strictEqual(c.url.origin, "https://api.chinacarapi.com");
@@ -190,6 +199,27 @@ function fakeFetch(status, payload) {
   const diagClient = new EnCarAPI("kr_key", { fetch: fakeFetch(200, diagPayload) });
   assert.deepStrictEqual(await diagClient.korea.diagnosis("41192872"), diagPayload);
 
+  // History 404: status + JSON body tell "no public history" apart from "not collected yet"
+  const noHist = new EnCarAPI("kr_key", { fetch: fakeFetch(404, { error: "This listing has no public vehicle history.", historyAvailable: false, listingStatus: "active", hint: "..." }) });
+  await assert.rejects(noHist.korea.history("42967176"), (e) => e instanceof EnCarAPIError && e.status === 404 && JSON.parse(e.body).historyAvailable === false);
+  const pendingHist = new EnCarAPI("kr_key", { fetch: fakeFetch(404, { error: "Vehicle history not yet available.", historyPending: true, listingStatus: "active", hint: "..." }) });
+  await assert.rejects(pendingHist.korea.history("43000000"), (e) => e.status === 404 && JSON.parse(e.body).historyPending === true);
+
+  // History payloads are passed through unchanged
+  const histPayload = {
+    listingId: "41483842", vehicleId: 41485538, collectedAt: "2026-11-04T10:00:00.000Z", listingStatus: "active",
+    eventCount: 2, summaryKo: "용도 변경 이력이 없는 차량이네요!",
+    mileageReadings: [{ date: "2025-11-03", mileageKm: 89119, source: "inspection" }],
+    ownershipPeriods: [{ from: "2023-08", to: null, region: "경기도 양주시", transferTypeKo: "매매업자 거래이전", drivenKm: 69482 }],
+    flags: { rental: false, commercial: false, government: false, totalLossFloodOrTheft: false, singleOwner: true, noOwnDamageInsurance: false, recallCount: 0 },
+    events: [
+      { type: "inspection", date: "2025-11-03", month: "2025-11", titleKo: "자동차 검사 완료", mileageKm: 89119, inspectionType: "periodic" },
+      { type: "insurance_claim", date: "2024-05", month: "2024-05", titleKo: "보험 수리", claimType: "own_damage", totalCostKrw: 1250000 },
+    ],
+  };
+  const histClient = new EnCarAPI("kr_key", { fetch: fakeFetch(200, histPayload) });
+  assert.deepStrictEqual(await histClient.korea.history("41483842"), histPayload);
+
   console.log("encarapi offline tests: OK");
 
   if (process.argv.includes("--live")) {
@@ -203,6 +233,9 @@ function fakeFetch(status, payload) {
       assert.ok(Array.isArray(diag.items) && diag.items.length > 0, "diagnosis has items");
       const replaced = diag.items.filter((i) => i.resultCode === "REPLACEMENT").map((i) => i.name);
       console.log("live korea diagnosis 41192872:", diag.items.length, "items, replaced:", replaced.join(", ") || "none");
+      const hist = await live.korea.history("41483842");
+      assert.ok(Array.isArray(hist.events), "history has events array");
+      console.log("live korea history 41483842:", hist.eventCount, "events,", hist.mileageReadings.length, "mileage readings");
     }
     if (saved.c || saved.k) {
       const cn = await live.china.catalog({ limit: 1 });

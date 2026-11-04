@@ -337,6 +337,149 @@ export interface KoreaVehicleDetail extends Json {
   InspectionReportType?: "link" | "scan" | null;
 }
 
+/** Source of a vehicle-history odometer reading. */
+export type HistoryMileageSource = "inspection" | "repair" | "owner_change" | (string & {});
+
+/** One dated odometer reading of the vehicle history, oldest first. */
+export interface HistoryMileageReading {
+  /** YYYY-MM-DD (null when the source carries no date). */
+  date: string | null;
+  mileageKm: number;
+  /** "inspection", "repair" or "owner_change". */
+  source: HistoryMileageSource;
+}
+
+/** One ownership period of the vehicle history. */
+export interface HistoryOwnershipPeriod {
+  /** Start of the period, usually YYYY-MM. */
+  from: string | null;
+  /** End of the period, usually YYYY-MM; null = current owner. */
+  to: string | null;
+  /** City/district of the owner (Korean). */
+  region: string | null;
+  /** Transfer type (Korean), e.g. "매매업자 거래이전". */
+  transferTypeKo: string | null;
+  /** Distance driven in this period (not the odometer reading). */
+  drivenKm: number | null;
+}
+
+/** Summary flags of the vehicle history. */
+export interface HistoryFlags {
+  rental: boolean | null;
+  commercial: boolean | null;
+  government: boolean | null;
+  totalLossFloodOrTheft: boolean | null;
+  singleOwner: boolean | null;
+  noOwnDamageInsurance: boolean | null;
+  recallCount: number;
+}
+
+/** Type of a vehicle-history event. Treat unknown types as additional events. */
+export type HistoryEventType =
+  | "inspection"
+  | "repair"
+  | "owner_change"
+  | "insurance_claim"
+  | "recall"
+  | "new_car"
+  | "no_own_damage_insurance"
+  | "registration_change"
+  | "encar_quote"
+  | "other"
+  | (string & {});
+
+/**
+ * One event of the vehicle-history timeline, in Encar's order. Every event has `type`, `date`, `month`
+ * and `titleKo`; the remaining fields depend on the type (see the endpoint description). Unknown types
+ * are additional events; unmapped titles arrive as `other` with Encar's name/value pairs in `detailsKo`.
+ */
+export interface HistoryEvent extends Json {
+  type: HistoryEventType;
+  /** YYYY-MM-DD, or YYYY-MM where Encar gives only the month. */
+  date: string | null;
+  month: string | null;
+  /** Encar's Korean title for the event. */
+  titleKo: string;
+  /** inspection, repair, owner_change: odometer reading at the event. */
+  mileageKm?: number | null;
+  /** inspection: periodic, comprehensive, reinspection, new_registration, tuning, temporary, repair, other. */
+  inspectionType?: string | null;
+  inspectionTypeKo?: string | null;
+  /** inspection: inspection station. */
+  station?: string | null;
+  /** repair: workshop name. */
+  workshop?: string | null;
+  /** repair: workshop city/district. */
+  workshopAddress?: string | null;
+  completedDate?: string | null;
+  /** repair: repaired or replaced parts (Korean). */
+  partsKo?: string[];
+  /** owner_change: transfer type. */
+  transferType?: string | null;
+  transferTypeKo?: string | null;
+  /** insurance_claim: own_damage or damage_to_others. */
+  claimType?: string | null;
+  /** insurance_claim: total repair cost in KRW (null = not repaired / not stated). */
+  totalCostKrw?: number | null;
+  partsKrw?: number | null;
+  laborKrw?: number | null;
+  paintKrw?: number | null;
+  /** insurance_claim: claim settled without a repair. */
+  unrepaired?: boolean | null;
+  /** recall: completed or open. */
+  status?: string | null;
+  statusKo?: string | null;
+  recallKo?: string | null;
+  scopeKo?: string | null;
+  defectKo?: string | null;
+  /** new_car: individual or corporate. */
+  ownerType?: string | null;
+  productionDate?: string | null;
+  firstRegistrationDate?: string | null;
+  newPriceKrw?: number | null;
+  releasePriceKrw?: number | null;
+  countryKo?: string | null;
+  region?: string | null;
+  /** no_own_damage_insurance: period without own-damage cover. */
+  from?: string | null;
+  to?: string | null;
+  months?: number | null;
+  /** other: Encar's own name/value pairs for a title we do not map yet. */
+  detailsKo?: Json;
+}
+
+/**
+ * Encar vehicle history (차량이력): odometer readings, inspections, repairs, ownership changes, insurance
+ * claims and recalls, collected from the Ministry of Land, Infrastructure and Transport (국토교통부) and the
+ * Korea Insurance Development Institute (보험개발원). Encar listings only; about 8 in 10 Encar listings have
+ * one (the catalog item's `Condition` contains "Resume"). Keys and enums are English; Korean source text
+ * stays in the `*Ko` fields and in `station`, `workshop`, `workshopAddress` and `region`, and is not
+ * translated with `lang`. Returned by korea.history().
+ */
+export interface VehicleHistory {
+  /** The Encar listing the request resolved to. */
+  listingId: string;
+  /** Encar vehicle id. */
+  vehicleId: number | null;
+  /** When we last read the history from Encar (UTC); every history is refreshed every 30 days. */
+  collectedAt: string | null;
+  /** "active" or "removed". */
+  listingStatus: string;
+  eventCount: number;
+  /** Encar's one-line summary (Korean). */
+  summaryKo: string | null;
+  /** Every dated odometer reading, oldest first. */
+  mileageReadings: HistoryMileageReading[];
+  /** One entry per owner, oldest first. */
+  ownershipPeriods: HistoryOwnershipPeriod[];
+  flags: HistoryFlags;
+  /** The timeline in Encar's order. */
+  events: HistoryEvent[];
+}
+
+/** Result of korea.history(). */
+export type HistoryResponse = VehicleHistory;
+
 /** Korean used-car data: Encar, KB Chachacha ("kbc") and K Car ("kcar"). */
 export class KoreaClient {
   constructor(apiKey: string, options?: Pick<ClientOptions, "baseUrl" | "fetch">);
@@ -389,6 +532,15 @@ export class KoreaClient {
    * On a trial it counts as a detail lookup; not on the free dev plan (403).
    */
   diagnosis(id: string): Promise<DiagnosisResponse>;
+  /**
+   * Encar vehicle history (차량이력), Encar ids only: the timeline of inspections, repairs, owner changes,
+   * insurance claims and recalls, with odometer readings, ownership periods and flags. Without one the call
+   * throws EnCarAPIError with status 404 and a JSON body: `historyAvailable: false` = Encar shows no public
+   * history for this listing, `historyPending: true` = Encar has one but we have not collected it yet (retry
+   * later), `Vehicle not found.` = unknown id; prefixed kbc:/kcar: ids also answer 404 with a hint. Removed
+   * listings follow the archive rules of inspection().
+   */
+  history(id: string): Promise<HistoryResponse>;
   refresh(id: string): Promise<Json>;
   /** Beta, Scale plan. */
   priceCheck(id: string): Promise<Json>;
