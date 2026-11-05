@@ -48,6 +48,16 @@ function fakeFetch(status, payload) {
   assert.strictEqual(c.url.searchParams.get("lang"), "de");
   assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["1"] });
 
+  // Inspection: Encar and kbc: ids (KB Chachacha structured sheet), encoded like vehicle()
+  await client.korea.inspection("kbc:123");
+  c = calls.pop();
+  assert.strictEqual(c.init.method, "GET");
+  assert.strictEqual(c.url.pathname, "/api/inspection/kbc%3A123");
+  await client.korea.bulkInspections(["41192872", "kbc:123"]);
+  c = calls.pop();
+  assert.strictEqual(c.url.pathname, "/api/inspection/bulk");
+  assert.deepStrictEqual(JSON.parse(c.init.body), { ids: ["41192872", "kbc:123"] });
+
   // Encar diagnosis: GET per id (ids encoded like inspection()), POST bulk with { ids }
   await client.korea.diagnosis("41192872");
   c = calls.pop();

@@ -184,7 +184,7 @@ saveCursor(client.china.lastCursor); // later: iterateChanges({ cursor: loadCurs
 | `enums(params)` | `GET /api/enums` | Valid values for the flat filters |
 | `modelSearch(search, params)` | `GET /api/model-search` | Model autocomplete |
 | `vehicle(id)` | `GET /api/vehicle/:id` | Ids: Encar id, `kbc:<id>`, `kcar:<id>` |
-| `inspection(id)` | `GET /api/inspection/:id` | Official inspection report |
+| `inspection(id)` | `GET /api/inspection/:id` | Official inspection report; Encar ids and `kbc:` ids with `InspectionAvailable` true (KB Chachacha sheet in the same format) |
 | `record(id)` | `GET /api/record/:id` | Accident & ownership record |
 | `diagnosis(id)` | `GET /api/diagnosis/:id` | Encar diagnosis (엔카진단): outer panels replaced or not, inspector verdict; Encar ids only |
 | `history(id)` | `GET /api/history/:id` | Encar vehicle history (차량이력): inspections, repairs, owner changes, insurance claims, recalls; Encar ids only |

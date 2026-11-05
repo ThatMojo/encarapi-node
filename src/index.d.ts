@@ -214,9 +214,12 @@ export interface KoreaChange extends Json {
   /** Encar only: only simple repairs (e.g. panel or paint work) according to the inspection. null = not known. */
   SimpleRepair?: boolean | null;
   /**
-   * Encar only: null = detail not collected yet; false = no inspection report at our last detail fetch
+   * Encar: null = detail not collected yet; false = no inspection report at our last detail fetch
    * (can still turn true later); true = Accident and SimpleRepair are filled. The first collected detail
    * arrives as an "updated" event with "inspection" in changedFields.
+   * KB Chachacha (since 5 November 2026): true = korea.inspection("kbc:<id>") returns the inspection sheet as
+   * structured data, false = not (yet). When it becomes available, the listing arrives as an "updated" event
+   * with "inspection" in changedFields.
    */
   InspectionAvailable?: boolean | null;
   /**
@@ -227,8 +230,8 @@ export interface KoreaChange extends Json {
   InsuranceClaims?: number | null;
   /**
    * KB Chachacha only: link to the inspection sheet (성능·상태점검기록부) on the inspection company's website,
-   * as linked from the listing page. A third-party page in Korean, not checked or stored by us. null when
-   * InspectionReportType is not "link".
+   * as linked from the listing page. A third-party page in Korean. null when InspectionReportType is not
+   * "link". See InspectionAvailable for the structured version of the sheet.
    */
   InspectionReportUrl?: string | null;
   /**
@@ -335,6 +338,8 @@ export interface KoreaVehicleDetail extends Json {
   InspectionReportUrl?: string | null;
   /** kbc: payloads only: "link" | "scan" | null, same values as KoreaChange.InspectionReportType. */
   InspectionReportType?: "link" | "scan" | null;
+  /** kbc: payloads only: true = korea.inspection("kbc:<id>") returns the structured inspection sheet. */
+  InspectionAvailable?: boolean;
 }
 
 /** Source of a vehicle-history odometer reading. */
@@ -522,6 +527,14 @@ export class KoreaClient {
   iterateEquipmentById(params?: KoreaEquipmentParams): AsyncGenerator<Json, void, unknown>;
   /** Ids: Encar id, "kbc:<id>" or "kcar:<id>". Encar payloads end with diagnosisReport. */
   vehicle(id: string, params?: { lang?: KoreaLang }): Promise<KoreaVehicleDetail>;
+  /**
+   * Official inspection report. Ids: Encar id, or "kbc:<id>" for a KB Chachacha listing whose sheet we read
+   * (InspectionAvailable true): same structure and codes as an Encar report plus a `source` block
+   * ({ id, provider, reportUrl, sheetUrl, fetchedAt }), vehicleId null, images[].path absolute URLs. Otherwise
+   * a kbc: id throws EnCarAPIError 404 with a JSON body: `detailPending: true` = sheet link not read yet
+   * (retry later), `inspectionAvailable: false` = no structured sheet (original link in inspectionReportUrl).
+   * kcar: ids answer 404 with a hint.
+   */
   inspection(id: string): Promise<Json>;
   record(id: string): Promise<Json>;
   /**
@@ -548,6 +561,11 @@ export class KoreaClient {
   recordVersions(id: string): Promise<Json>;
   /** lang: "en" (KB Chachacha payloads), "ru" / "de" (KB Chachacha and Encar payloads). */
   bulkVehicles(ids: string[], params?: { lang?: KoreaLang }): Promise<Json>;
+  /**
+   * Up to 500 inspection reports in one call. kbc: ids come back in results (payload as inspection()),
+   * pending (sheet link not read yet), noInspection (no structured sheet) or notEntitled; kcar: ids under
+   * encarOnly.
+   */
   bulkInspections(ids: string[]): Promise<Json>;
   bulkRecords(ids: string[]): Promise<Json>;
   /**
