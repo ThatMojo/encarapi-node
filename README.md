@@ -69,7 +69,9 @@ China calls take `lang: "zh"` (original Chinese values) or `lang: "ru"`: Russian
 (fuel, transmission, drivetrain, colours, seller type, condition, vehicle class), city names and equipment
 names on `catalog`, `vehicle`, `vehicleByUrl`, `bulkVehicles` and `specs`. Make, model and trim names stay
 Latin. `enums({ lang: "ru" })` adds `nameRu` to fuels and cities, `exportCsv({ lang: "ru" })` /
-`exportToFile(path, { lang: "ru" })` return the label columns in Russian.
+`exportToFile(path, { lang: "ru" })` return the label columns in Russian. With `lang: "ru"` the text values of `specs` are Russian as well (energy type, transmission, drive, aspiration,
+body type, emission standard, warranties, motor and battery type); a value without a Russian term stays English.
+`specFields({ lang })` returns the label, unit and group of every `specs` key in English, Russian or Chinese.
 
 ```js
 const cn = await client.china.catalog({ make: "BYD", lang: "ru", limit: 10 });
@@ -207,6 +209,7 @@ saveCursor(client.china.lastCursor); // later: iterateChanges({ cursor: loadCurs
 | `vehicleByUrl(url)` | `GET /api/vehicle/by-url` | Same record by Che168/Dongchedi listing link (desktop, mobile or app) |
 | `inspection(id)` | `GET /api/inspection/:id` | Accident, flood and fire checks, EV battery data |
 | `specs(trimId, params)` | `GET /api/specs/:trimId` | Autohome trim sheet of a Che168 car: cc, kW, hp, torque, emission standard, weights, EV battery |
+| `specFields(params)` | `GET /api/specs/fields` | Label, unit and group for every key of a record's `specs` object; `{ lang: "ru" }` or `"zh"` for Russian or Chinese |
 | `bulkVehicles(ids)` | `POST /api/vehicle/bulk` | Up to 500 ids |
 | `changes(params)` / `iterateChanges(params)` | `GET /api/catalog/changes` | Change feed (Business/Scale) |
 | `exportCsv(params)` | `GET /api/catalog/export` | Full catalog CSV; `{ lang: "ru" }` for Russian label columns |
