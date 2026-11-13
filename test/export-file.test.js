@@ -199,6 +199,10 @@ test("China lang=ru reaches catalog, vehicle, by-url, bulk, specs and enums; exp
   );
   await cn.specs(62342);
   assert.equal(calls.at(-1).url.search, "", "specs without params sends no query");
+  await cn.specFields({ lang: "ru" });
+  assert.equal(`${calls.at(-1).url.pathname}${calls.at(-1).url.search}`, "/api/specs/fields?lang=ru");
+  await cn.specFields();
+  assert.equal(`${calls.at(-1).url.pathname}${calls.at(-1).url.search}`, "/api/specs/fields");
   assert.equal(await cn.exportCsv({ lang: "ru" }), "a,b\n");
   assert.equal(calls.at(-1).url.searchParams.get("lang"), "ru");
 });

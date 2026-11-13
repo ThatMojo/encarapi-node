@@ -59,6 +59,9 @@ class ChinaClient {
   /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record): cc, kW, hp, torque, emission standard, weights, EV battery. params.lang: "zh" or "ru" for the equipment names. */
   specs(trimId, params) { return this.http.request("GET", `/api/specs/${enc(trimId)}`, { params }); }
 
+  /** Field dictionary of the `specs` object of a vehicle record: label, unit, group and type per key. params.lang: "ru" or "zh" for Russian or Chinese labels (default English). Static, cache it. */
+  specFields(params) { return this.http.request("GET", "/api/specs/fields", { params }); }
+
   /** Up to 500 full records in one call (Business/Scale). */
   bulkVehicles(ids, params) { return this.http.request("POST", "/api/vehicle/bulk", { params, body: { ids } }); }
 

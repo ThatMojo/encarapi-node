@@ -638,6 +638,13 @@ export interface ChinaCatalogResponse {
   results: Json[];
 }
 
+/** Answer of china.specFields(): labels, units and groups for the keys of a vehicle record's `specs` object. */
+export interface ChinaSpecFields extends Json {
+  lang: "en" | "ru" | "zh";
+  groups: { key: string; label: string }[];
+  /** key: field name, "ev.<name>" for keys under specs.ev. unit: null when the value has none. */
+  fields: { key: string; label: string; unit: string | null; group: string; type: "number" | "text" }[];
+}
 export interface ChinaChangesParams {
   /** ISO timestamp for the first call. */
   since?: string;
@@ -678,6 +685,11 @@ export class ChinaClient {
   inspection(id: string, params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). lang "zh" / "ru" for the equipment names. */
   specs(trimId: string | number, params?: { lang?: ChinaLang }): Promise<Json>;
+  /**
+   * Field dictionary of the `specs` object: `{ lang, groups: [{ key, label }], fields: [{ key, label, unit, group, type }] }`.
+   * One entry per key (keys under specs.ev as "ev.<name>"). lang "ru" / "zh" for Russian / Chinese labels, default English.
+   */
+  specFields(params?: { lang?: ChinaLang }): Promise<ChinaSpecFields>;
   bulkVehicles(ids: string[], params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Alias of bulkVehicles. */
   bulk(ids: string[], params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
