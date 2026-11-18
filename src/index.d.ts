@@ -601,7 +601,8 @@ export interface ChinaExportParams {
 }
 
 export interface ChinaCatalogParams {
-  source?: "dongchedi" | "che168" | (string & {});
+  /** "che168_domestic" = Che168 cars only on the domestic site (not in the export portal); returned only when named. */
+  source?: "dongchedi" | "che168" | "che168_domestic" | (string & {});
   duplicates?: "include" | (string & {});
   make?: string;
   model?: string;
@@ -642,7 +643,8 @@ export interface ChinaChangesParams {
   since?: string;
   /** nextCursor from the previous call. */
   cursor?: number;
-  source?: "dongchedi" | "che168" | (string & {});
+  /** "che168_domestic" = Che168 cars only on the domestic site (not in the export portal); returned only when named. */
+  source?: "dongchedi" | "che168" | "che168_domestic" | (string & {});
   limit?: number;
 }
 
@@ -669,16 +671,16 @@ export class ChinaClient {
   catalog(params?: ChinaCatalogParams): Promise<ChinaCatalogResponse>;
   /** All pages up to the API's 10,000-result depth limit. */
   iterateCatalog(params?: ChinaCatalogParams): AsyncGenerator<Json, void, unknown>;
-  vehicle(id: string, params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
+  vehicle(id: string, params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Full record by Che168/Dongchedi listing link (desktop, mobile or app). */
   vehicleByUrl(url: string, params?: { lang?: ChinaLang }): Promise<Json>;
   /** lang "zh": original Chinese report; "ru" is accepted, the report stays English. */
-  inspection(id: string, params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
+  inspection(id: string, params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). lang "zh" / "ru" for the equipment names. */
   specs(trimId: string | number, params?: { lang?: ChinaLang }): Promise<Json>;
-  bulkVehicles(ids: string[], params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
+  bulkVehicles(ids: string[], params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Alias of bulkVehicles. */
-  bulk(ids: string[], params?: { source?: "dongchedi" | "che168"; lang?: ChinaLang }): Promise<Json>;
+  bulk(ids: string[], params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   changes(params: ChinaChangesParams): Promise<ChinaChangesResponse>;
   iterateChanges(params: ChinaChangesParams): AsyncGenerator<ChinaChange, void, unknown>;
   /** Full catalog as CSV text (Business/Scale). */
