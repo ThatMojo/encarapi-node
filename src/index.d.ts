@@ -681,7 +681,14 @@ export class ChinaClient {
   vehicle(id: string, params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Full record by Che168/Dongchedi listing link (desktop, mobile or app). */
   vehicleByUrl(url: string, params?: { lang?: ChinaLang }): Promise<Json>;
-  /** lang "zh": original Chinese report; "ru" is accepted, the report stays English. */
+  /**
+   * lang "zh": original Chinese report; "ru" is accepted, the report stays English.
+   * Reports are archived: a report stays available after the marketplace removes it or the car is sold.
+   * Adds `firstSeenAt` (string | null: when we first stored this content; for reports stored before
+   * 25 Nov 2026 the date of their last read; null if not archived yet) and `lastSeenAt` (string | null:
+   * when we last read it on the marketplace, re-read every 7 to 30 days). `inspectionAvailable` on
+   * catalog, vehicle and bulk records is true for archived reports as well.
+   */
   inspection(id: string, params?: { source?: "dongchedi" | "che168" | "che168_domestic"; lang?: ChinaLang }): Promise<Json>;
   /** Autohome specification sheet of a Che168 trim (trim.id of a vehicle record). lang "zh" / "ru" for the equipment names. */
   specs(trimId: string | number, params?: { lang?: ChinaLang }): Promise<Json>;
